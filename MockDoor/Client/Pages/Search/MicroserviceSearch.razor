@@ -1,0 +1,104 @@
+@page "/search-microservices"
+
+@inherits BasePageComponent
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="Microservice Search" Icon="saved_search" />
+    </RadzenBreadCrumb>
+</div>
+
+<RadzenCard class="my-3 h-100">
+    <div class="row">
+        <div class="col-md-10"><h1>Search Microservices</h1></div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div>
+                <RadzenDataGrid AllowPaging="true"
+                                AllowSorting="true"
+                                AllowFiltering="true"
+                                AllowColumnResize="true"
+                                AllowColumnPicking="true"
+                                AllowColumnReorder="true"
+                                Data="@_microserviceSearchItems"
+                                AllowVirtualization="true"
+                                ColumnWidth="170px"
+                                GridLines="DataGridGridLines.Both"
+                                TItem="MicroserviceSearchResultDto"
+                                PageSize="20">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="Enabled" Title="Enabled">
+                            <Template Context="msItem">
+                                <ReadOnlyToggleState State="@msItem.Enabled" TrueText="Enabled" FalseText="Disabled"/>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="TenantName" Title="Tenant Name">
+                            <Template Context="msItem">
+                                <RadzenLink Text="@msItem.TenantName" Path="@($"tenant/viewdetails/{msItem.TenantId}")"/>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="ServiceGroupName" Title="Group Name">
+                            <Template Context="msItem">
+                                <RadzenLink Text="@msItem.ServiceGroupName" Path="@($"service-group/viewdetails/{msItem.ServiceGroupId}")"/>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="Name" Title="Microservice Name">
+                            <Template Context="msItem">
+                                <RadzenLink Text="@msItem.Name" Path="@($"microservice/viewdetails/{msItem.TenantId}/{msItem.Id}")"/>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="Path" Title="Microservice Path">
+                            <Template Context="msItem">
+                                <RadzenLink Text="@msItem.Path" Path="@($"microservice/viewdetails/{msItem.TenantId}/{msItem.Id}")"/>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="SimulateTime" Title="Simulate Time">
+                            <Template Context="msItem">
+                                @if (msItem.SimulateTime == null)
+                                {
+                                    <p>[Not Set]</p>
+                                }
+                                else
+                                {
+                                    <p>@msItem.SimulateTime.Value.ToString("dd/MM/yy HH:mm:ss.ffff")</p>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="ProxyMode" Title="Proxy Mode">
+                            <Template Context="msItem">
+                                <ReadOnlyToggleState State="@msItem.ProxyMode" TrueText="Enabled" FalseText="Disabled"/>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="TargetUrl" Width="450px" Title="Target Url">
+                            <Template Context="msItem">
+                                @if (string.IsNullOrWhiteSpace(msItem.TargetUrl))
+                                {
+                                    <p>[Not Set]</p>
+                                }
+                                else
+                                {
+                                    <RadzenLink Text="@msItem.TargetUrl"/>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="PassThroughTenant" Title="Pass Through Tenant">
+                            <Template Context="msItem">
+                                <ReadOnlyToggleState State="@msItem.PassThroughTenant" TrueText="Enabled" FalseText="Disabled"/>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="FakeDelay" Title="Fake Delay"/>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="RandomiseMockResult" Title="Randomise Mock Result">
+                            <Template Context="msItem">
+                                <ReadOnlyToggleState State="@msItem.RandomiseMockResult" TrueText="True" FalseText="False"/>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MicroserviceSearchResultDto" Property="TotalRequests" Title="Total Requests"/>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+        </div>
+    </div>
+</RadzenCard>

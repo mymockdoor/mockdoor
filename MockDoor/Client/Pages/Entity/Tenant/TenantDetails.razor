@@ -1,0 +1,133 @@
+﻿@page "/tenant/viewdetails/{Id:int}"
+
+@inherits BasePageComponent
+
+@inject TenantService TenantService
+
+<PageTitle>View Tenant Details</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="View Tenant Details"/>
+    </RadzenBreadCrumb>
+</div>
+
+@if (_tenant == null)
+{
+    <RadzenPanel class="m-2 shadow">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel class="m-2 shadow">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>Tenant Details:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">  
+                <RadzenSplitter Orientation="Orientation.Horizontal">
+                    <RadzenSplitterPane>
+                        <RadzenCard class="h-100">
+                            <div class="row mb-3">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Name"/>
+                                </div>
+
+                                <div class="col">
+                                    <p>@_tenant.Name</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Path"/>
+                                </div>
+
+                                <div class="col">
+                                    <p>@_tenant.Path</p>
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Simulation Time"/>
+                                </div>
+
+                                <div class="col">
+                                    @if (_tenant.SimulateTime == null)
+                                    {
+                                        <p>[Not Set]</p>
+                                    }
+                                    else
+                                    {
+                                        <p>@_tenant.SimulateTime.Value.ToString("dd/MM/yy HH:mm:ss.ffff")</p>
+                                    }
+                                </div>
+                            </div>
+                        
+                            <div class="d-flex">
+                                <div class="flex-grow-1"></div>
+                                <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Edit" Click="@(() => NavigationManager.NavigateTo($"tenant/edit/{Id}"))"/>
+
+                                <RadzenButton ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))"/>
+                                <div class="flex-grow-1"></div>
+                            </div>
+                        </RadzenCard>
+                    </RadzenSplitterPane>
+                                  
+                    <RadzenSplitterPane>
+                        <RadzenFieldset Text="Service Groups:">
+                            <div style="height: 320px;">
+                                <SimpleEntityList Items="@_tenant.RegisteredServiceGroups" ValueProperty="ID" TextProperty="Name">
+                                    <StartListItem Context="serviceGroupContext">
+                                        @if (serviceGroupContext.Enabled)
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled" />
+                                        }
+                                        else
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled" />
+                                        }
+                                    </StartListItem>
+
+                                    <ListItem Context="serviceGroupContext">
+                                        <span class="p-2 flex-grow-1">@serviceGroupContext.Name.SafePrint(serviceGroupContext.Path)</span>
+                                    </ListItem>
+
+                                    <EndListItem Context="serviceGroupContext">
+                                        <RadzenButton Click="@(() => NavigationManager.NavigateTo($"service-group/edit/{serviceGroupContext.Id}"))"
+                                                      ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small" />
+                                    </EndListItem>
+                                </SimpleEntityList>
+                            </div>
+                        </RadzenFieldset>
+                    </RadzenSplitterPane>
+                </RadzenSplitter>
+            </div>
+        </ChildContent>
+    </RadzenPanel>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    BaseTenantDto _tenant;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await TenantService.GetTenantAsync(Id);
+
+        if (response.IsSuccessStatusCode)
+        {
+            _tenant = response.Content;
+        }
+    }
+}

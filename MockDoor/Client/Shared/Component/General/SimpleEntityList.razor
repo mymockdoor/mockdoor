@@ -1,0 +1,71 @@
+﻿@typeparam TItem
+
+@if (string.IsNullOrWhiteSpace(ValueProperty))
+{
+    <GeneralError Message="Unable to render SimpleEntityList. No ValueProperty Defined, you must define a int value property for an index" />
+}
+else
+{
+    <RadzenListBox @bind-Value="@_value"
+                   Data="@Items"
+                   AllowFiltering="true"
+                   FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                   FilterOperator="StringFilterOperator.Contains"
+                   TextProperty="@TextProperty"
+                   FilterDelay="200"
+                   Style="@CssStyle"
+                   class="h-100 w-100 item-list  list-span-fix"
+                   ValueProperty="@ValueProperty">
+        <Template>
+                <div class="d-flex border-primary">
+
+                    @if (StartListItem != null)
+                    {
+                        <div class="m-auto">
+                            @StartListItem(context)
+                        </div>
+                    }
+
+                    @if (ListItem != null)
+                    {
+                        <span class="flex-grow-1 m-auto">@ListItem(context)</span>
+                    }
+
+                    @if (EndListItem != null)
+                    {
+                        <div class="m-auto">
+                            @EndListItem(context)
+                        </div>
+                    }
+                </div>
+        </Template>
+    </RadzenListBox>
+}
+
+@code {
+
+    [Parameter]
+    public RenderFragment<TItem> StartListItem { get; set; }
+
+    [Parameter]
+    public RenderFragment<TItem> ListItem { get; set; }
+
+    [Parameter]
+    public RenderFragment<TItem> EndListItem { get; set; }
+
+    [Parameter]
+    public string ValueProperty { get; set; }
+
+    [Parameter]
+    public string CssStyle { get; set; }
+
+    [Parameter]
+    public string TextProperty { get; set; }
+
+    int _value;
+
+    [Parameter]
+    public List<TItem> Items { get; set; }
+
+
+}

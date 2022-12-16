@@ -1,0 +1,1574 @@
+{
+	"info": {
+		"_postman_id": "e0e46e8c-64d0-4eb1-9d62-38d394a4e4e1",
+		"name": "MockDoor_Tenant_Tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Check Migrations",
+			"item": [
+				{
+					"name": "Check if migrations applied",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Has Json Body with pending pendingMigrations set\", function () {",
+									"    pm.expect(jsonData.pendingMigrations).to.exist;",
+									"});",
+									"",
+									"pm.test(\"check migrations required\", function () {    ",
+									"    pm.collectionVariables.set(\"testTenantId\", jsonData.id);",
+									"    if(jsonData.pendingMigrations.length === 0)",
+									"    {",
+									"        postman.setNextRequest(\"Tenant not exist by name\");        ",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/configuration",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"configuration"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Apply migrations",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/configuration/applymigrations",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"configuration",
+								"applymigrations"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tenant Setup",
+			"item": [
+				{
+					"name": "Tenant not exist by name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant/findbyname/{{testTenantName}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"findbyname",
+								"{{testTenantName}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tenant not exist yet by path",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant/findbypath/{{testTenantPath}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"findbypath",
+								"{{testTenantPath}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Test Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Has Json Body with name set\", function () {\r",
+									"    var tenantName=pm.environment.get(\"testTenantName\");\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(tenantName);\r",
+									"    \r",
+									"    pm.collectionVariables.set(\"testTenantId\", jsonData.id);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with path set\", function () {\r",
+									"    var tenantPath=pm.environment.get(\"testTenantPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(tenantPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Simulation time updated\", function () {\r",
+									"    pm.expect(jsonData.simulateTime).to.eql(null);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid tenant list\", function () {\r",
+									"    pm.expect(jsonData.registeredServiceGroups).to.eql(null);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{testTenantName}}\",\r\n    \"path\": \"{{testTenantPath}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tenant Does Exist by Id",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Has Json Body with name set\", function () {\r",
+									"    var tenantName=pm.environment.get(\"testTenantName\");\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(tenantName);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with path set\", function () {\r",
+									"    var tenantPath=pm.environment.get(\"testTenantPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(tenantPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Simulation time updated\", function () {\r",
+									"    pm.expect(jsonData.simulateTime).to.eql(null);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant/{{testTenantId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"{{testTenantId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tenant Group Setup",
+			"item": [
+				{
+					"name": "Group not Exist by full path",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/servicegroup/findbyfullpath/{{testTenantPath}}/{{testServiceGroupPath}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"servicegroup",
+								"findbyfullpath",
+								"{{testTenantPath}}",
+								"{{testServiceGroupPath}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Group not Exist by path and tenant id",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/servicegroup/findbyfullpath/{{testTenantId}}/{{testServiceGroupPath}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"servicegroup",
+								"findbyfullpath",
+								"{{testTenantId}}",
+								"{{testServiceGroupPath}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Test Service Group",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Has Json Body with name set\", function () {\r",
+									"    var serviceGroupName=pm.environment.get(\"testServiceGroupName\");\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(serviceGroupName);\r",
+									"    \r",
+									"    pm.collectionVariables.set(\"testServiceGroupId\", jsonData.id);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with path set\", function () {\r",
+									"    var serviceGroupPath=pm.environment.get(\"testServiceGroupPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(serviceGroupPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with healthcheck set\", function () {\r",
+									"    var testServiceGroupHealthCheckUrl=pm.environment.get(\"testServiceGroupHealthCheckUrl\");\r",
+									"    pm.expect(jsonData.defaultHealthCheckUrl).to.eql(testServiceGroupHealthCheckUrl);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with enabled set\", function () {\r",
+									"    pm.expect(jsonData.enabled).to.eql(true);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{testServiceGroupName}}\",\r\n    \"path\": \"{{testServiceGroupPath}}\",\r\n    \"tenantId\": \"{{testTenantId}}\",\r\n    \"enabled\": true,\r\n    \"defaultHealthCheckUrl\": \"{{testServiceGroupHealthCheckUrl}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/servicegroup/{{testTenantId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"servicegroup",
+								"{{testTenantId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Group exists once created",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Has Json Body with name set\", function () {\r",
+									"    var serviceGroupName=pm.environment.get(\"testServiceGroupName\");\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(serviceGroupName);\r",
+									"    \r",
+									"    pm.collectionVariables.set(\"testServiceGroupId\", jsonData.id);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with path set\", function () {\r",
+									"    var serviceGroupPath=pm.environment.get(\"testServiceGroupPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(serviceGroupPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with healthcheck set\", function () {\r",
+									"    var testServiceGroupHealthCheckUrl=pm.environment.get(\"testServiceGroupHealthCheckUrl\");\r",
+									"    pm.expect(jsonData.defaultHealthCheckUrl).to.eql(testServiceGroupHealthCheckUrl);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with enabled set\", function () {\r",
+									"    pm.expect(jsonData.enabled).to.eql(true);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/servicegroup/{{testServiceGroupId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"servicegroup",
+								"{{testServiceGroupId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tenant Microservice setup",
+			"item": [
+				{
+					"name": "Microservice not Exist by full path",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/microservice/findbypath/{{testServiceGroupId}}/{{testServiceGroupPath}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"microservice",
+								"findbypath",
+								"{{testServiceGroupId}}",
+								"{{testServiceGroupPath}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Microservice (minimal)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Has Json Body with id\", function () {",
+									"    pm.expect(jsonData.id).to.exist;",
+									"    pm.collectionVariables.set(\"testMicroserviceId\", jsonData.id);",
+									"});",
+									"",
+									"pm.test(\"Has name set\", function () {",
+									"    pm.expect(jsonData.name).to.eql(\"POSTMAN test\");",
+									"});",
+									"",
+									"pm.test(\"Has path set\", function () {",
+									"    var microservicePath = pm.environment.get(\"testMicroservicePath\");",
+									"    pm.expect(jsonData.path).to.eql(microservicePath);",
+									"});",
+									"",
+									"pm.test(\"Has target url set\", function () {",
+									"    var testMicroserviceTarget = pm.environment.get(\"testMicroserviceTarget\");",
+									"    pm.expect(jsonData.targetUrl).to.eql(testMicroserviceTarget);",
+									"});",
+									"",
+									"pm.test(\"Has service group id set\", function () {",
+									"    var serviceId=pm.collectionVariables.get(\"testServiceGroupId\");",
+									"    pm.expect(jsonData.registeredServiceGroupId).to.eql(serviceId);",
+									"});",
+									"",
+									"pm.test(\"Defaults to enabled\", function () {",
+									"    pm.expect(jsonData.enabled).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Defaults to proxy mode\", function () {",
+									"    pm.expect(jsonData.proxyMode).to.eql(true);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"path\": \"{{testMicroservicePath}}\",\n    \"name\": \"POSTMAN test\",\n    \"targetUrl\": \"{{testMicroserviceTarget}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/microservice/{{testServiceGroupId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"microservice",
+								"{{testServiceGroupId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Microservice exists once created",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Has Json Body with id\", function () {\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.collectionVariables.set(\"testMicroserviceId\", jsonData.id);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has name set\", function () {\r",
+									"    pm.expect(jsonData.name).to.eql(\"POSTMAN test\");\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has path set\", function () {\r",
+									"    var microservicePath = pm.environment.get(\"testMicroservicePath\");\r",
+									"    pm.expect(jsonData.path).to.eql(microservicePath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has target url set\", function () {\r",
+									"    pm.expect(jsonData.targetUrl).to.eql(\"https://jsonplaceholder.typicode.com/\");\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has service group id set\", function () {\r",
+									"    var serviceId=pm.collectionVariables.get(\"testServiceGroupId\");\r",
+									"    pm.expect(jsonData.registeredServiceGroupId).to.eql(serviceId);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Defaults to enabled\", function () {\r",
+									"    pm.expect(jsonData.enabled).to.eql(true);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Defaults to proxy mode\", function () {\r",
+									"    pm.expect(jsonData.proxyMode).to.eql(true);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/microservice/{{testMicroserviceId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"microservice",
+								"{{testMicroserviceId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Negative Tenant Tests",
+			"item": [
+				{
+					"name": "Create Tenant Duplicate Path Fails",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid error message\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.status).to.eql(400);\r",
+									"    pm.expect(jsonData.errors[\"Path\"]).to.exist;\r",
+									"    pm.expect(jsonData.errors[\"Path\"]).to.be.an('array');\r",
+									"    pm.expect(jsonData.errors[\"Path\"][0]).to.be.contain('Path already taken by existing tenant');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{testTenantName}} 2\",\r\n    \"path\": \"{{testTenantPath}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tenant Invalid Path Fails (Special Charecter)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid error message\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.status).to.eql(400);\r",
+									"    pm.expect(jsonData.errors[\"Path\"]).to.exist;\r",
+									"    pm.expect(jsonData.errors[\"Path\"]).to.be.an('array');\r",
+									"    pm.expect(jsonData.errors[\"Path\"][0]).to.be.contain('alpha numeric characters');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{testTenantName}}\",\r\n    \"path\": \"bad/path\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tenant Invalid Path Fails (null)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid error message\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.status).to.eql(400);\r",
+									"    pm.expect(jsonData.errors[\"Path\"]).to.exist;\r",
+									"    pm.expect(jsonData.errors[\"Path\"]).to.be.an('array');\r",
+									"    pm.expect(jsonData.errors[\"Path\"][0]).to.be.contain('Path is required');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{testTenantName}}\",\r\n    \"path\": null\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tenant Invalid Path Fails (empty string)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid error message\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.status).to.eql(400);\r",
+									"    pm.expect(jsonData.errors[\"Path\"]).to.exist;\r",
+									"    pm.expect(jsonData.errors[\"Path\"]).to.be.an('array');\r",
+									"    pm.expect(jsonData.errors[\"Path\"][0]).to.be.contain('Path is required');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{testTenantName}}\",\r\n    \"path\": \"\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tenant Invalid Name Fails (null)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid error message\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.status).to.eql(400);\r",
+									"    pm.expect(jsonData.errors[\"Name\"]).to.exist;\r",
+									"    pm.expect(jsonData.errors[\"Name\"]).to.be.an('array');\r",
+									"    pm.expect(jsonData.errors[\"Name\"][0]).to.be.contain('Name is required');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": null,\r\n    \"path\": \"{{testTenantPath}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tenant Duplicate Name Fails",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid error message\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.status).to.eql(400);\r",
+									"    pm.expect(jsonData.errors[\"Name\"]).to.exist;\r",
+									"    pm.expect(jsonData.errors[\"Name\"]).to.be.an('array');\r",
+									"    pm.expect(jsonData.errors[\"Name\"][0]).to.be.contain('Name already taken by existing tenant');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{testTenantName}}\",\r\n    \"path\": \"{{testTenantPath}}2\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tenant Invalid Name Fails (empty string)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid error message\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.status).to.eql(400);\r",
+									"    pm.expect(jsonData.errors[\"Name\"]).to.exist;\r",
+									"    pm.expect(jsonData.errors[\"Name\"]).to.be.an('array');\r",
+									"    pm.expect(jsonData.errors[\"Name\"][0]).to.be.contain('Name is required');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"\",\r\n    \"path\": \"{{testTenantPath}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Positive Tenant Tests",
+			"item": [
+				{
+					"name": "Tenant exists by name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Has Json Body with name set\", function () {\r",
+									"    var tenantName=pm.environment.get(\"testTenantName\");\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(tenantName);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with path set\", function () {\r",
+									"    var tenantPath=pm.environment.get(\"testTenantPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(tenantPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Simulation time updated\", function () {\r",
+									"    pm.expect(jsonData.simulateTime).to.eql(null);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant/findbyname/{{testTenantName}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"findbyname",
+								"{{testTenantName}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tenant exists by path",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Has Json Body with name set\", function () {\r",
+									"    var tenantName=pm.environment.get(\"testTenantName\");\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(tenantName);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with path set\", function () {\r",
+									"    var tenantPath=pm.environment.get(\"testTenantPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(tenantPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Simulation time updated\", function () {\r",
+									"    pm.expect(jsonData.simulateTime).to.eql(null);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant/findbypath/{{testTenantPath}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"findbypath",
+								"{{testTenantPath}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tenant List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"pm.test(\"Body Is Valid tenant list\", function () {\r",
+									"    pm.expect(jsonData).to.have.all.keys('tenants', 'totalTenants');\r",
+									"});\r",
+									"\r",
+									"\r",
+									"pm.test(\"tenant list not empty\", function () {\r",
+									"    pm.expect(jsonData.tenants).to.be.an('array');\r",
+									"    pm.expect(jsonData.tenants.length).to.above(0);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"tenant list is valid format\", function () {\r",
+									"    pm.expect(jsonData.tenants[0]).to.have.all.keys('id', 'name', 'path', 'simulateTime', 'registeredServiceGroups');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tenant Name List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"pm.test(\"Body Is Valid tenant list\", function () {\r",
+									"    pm.expect(jsonData).to.have.all.keys('tenants');\r",
+									"});\r",
+									"\r",
+									"pm.test(\"tenant list not empty\", function () {\r",
+									"    pm.expect(jsonData.tenants).to.be.an('array');\r",
+									"    pm.expect(jsonData.tenants.length).to.above(0);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"tenant list is valid format\", function () {\r",
+									"    pm.expect(jsonData.tenants[0]).to.have.all.keys('id', 'name');\r",
+									"});\r",
+									"\r",
+									"pm.test(\"tenant list not have additional data\", function () {\r",
+									"    pm.expect(jsonData.tenants[0]).to.not.have.any.keys('path', 'simulateTime', 'registeredServiceGroups');\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant/list",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"list"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tenant has child services",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Has Json Body with name set\", function () {\r",
+									"    var tenantName=pm.environment.get(\"testTenantName\");\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(tenantName);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Has Json Body with path set\", function () {\r",
+									"    var tenantPath=pm.environment.get(\"testTenantPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(tenantPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Simulation time updated\", function () {\r",
+									"    pm.expect(jsonData.simulateTime).to.eql(null);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body Is Valid tenant list\", function () {\r",
+									"    pm.expect(jsonData.registeredServiceGroups).to.be.an('array');\r",
+									"    pm.expect(jsonData.registeredServiceGroups.length).to.above(0);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"group list is valid format\", function () {\r",
+									"    pm.expect(jsonData.registeredServiceGroups[0]).to.have.any.keys('id', 'name', 'fullPath', 'path', 'tenantId', 'defaultHealthCheckUrl', 'simulateTime', 'tenantName', 'enabled')\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant/{{testTenantId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"{{testTenantId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update tenant name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Name updated\", function () {\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(\"new Name\");\r",
+									"    \r",
+									"});\r",
+									"\r",
+									"pm.test(\"Path not changed\", function () {\r",
+									"    var tenantPath=pm.environment.get(\"testTenantPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(tenantPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Simulation time updated\", function () {\r",
+									"    pm.expect(jsonData.simulateTime).to.eql(null);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"new Name\",\r\n    \"path\": \"{{testTenantPath}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant/{{testTenantId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"{{testTenantId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update tenant simulation time",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Name not changed\", function () {\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(\"new Name\");\r",
+									"    \r",
+									"});\r",
+									"\r",
+									"pm.test(\"Path not changed\", function () {\r",
+									"    var tenantPath=pm.environment.get(\"testTenantPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(tenantPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Simulation time updated\", function () {\r",
+									"    pm.expect(jsonData.simulateTime).to.eql(\"2022-10-08T15:42:54.3366667\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"new Name\",\r\n    \"path\": \"{{testTenantPath}}\",\r\n    \"simulateTime\": \"2022-10-08T15:42:54.3366667\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant/{{testTenantId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"{{testTenantId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove tenant simulation time",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"Name not changed\", function () {\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.name).to.eql(\"new Name\");\r",
+									"    \r",
+									"});\r",
+									"\r",
+									"pm.test(\"Path not changed\", function () {\r",
+									"    var tenantPath=pm.environment.get(\"testTenantPath\");\r",
+									"    pm.expect(jsonData.path).to.eql(tenantPath);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Simulation time updated\", function () {\r",
+									"    pm.expect(jsonData.simulateTime).to.eql(null);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"new Name\",\r\n    \"path\": \"{{testTenantPath}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant/{{testTenantId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"{{testTenantId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Clean up data",
+			"item": [
+				{
+					"name": "Delete Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/api/tenant/{{testTenantId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"{{testTenantId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Microservice not exist anymore",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.unset(\"testMicroserviceId\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/microservice/{{testMicroserviceId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"microservice",
+								"{{testMicroserviceId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Service group not exist anymore",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.unset(\"testServiceGroupId\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/servicegroup/{{testServiceGroupId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"servicegroup",
+								"{{testServiceGroupId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tenant not exist anymore",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.unset(\"newTenantId\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/api/tenant/{{testTenantId}}",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"api",
+								"tenant",
+								"{{testTenantId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "testTenantId",
+			"value": ""
+		}
+	]
+}

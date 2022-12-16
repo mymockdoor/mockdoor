@@ -1,0 +1,159 @@
+﻿<div class="row">
+    <label class="col-md-3">Headers: </label>
+
+    <div class="col">
+        <div class="row">
+            <div class="col-md-3 my-2 d-flex flex-column border-right text-center justify-content-center">
+                <label>Key</label>
+
+                <RadzenTextBox Name="Name" @bind-Value=@_newHeader.Name @oninput=@(args => _newHeader.Name = args.Value as string) Disabled="Disabled" />
+            </div>
+
+            <div class="col-md-2 d-flex flex-column border-right text-center justify-content-center">
+                <label>Enabled</label>
+
+                <div class="m-auto">
+                    <RadzenSwitch @bind-Value=@_newHeader.Enabled Style="margin-bottom: 20px" Disabled="Disabled" />
+                </div>
+
+            </div>
+
+            <div class="col-md-3 d-flex flex-column border-right text-center justify-content-center">
+                <label>Forward in requests</label>
+
+                <div class="m-auto">
+                    <RadzenSwitch @bind-Value=@_newHeader.Outgoing Style="margin-bottom: 20px" Disabled="Disabled" />
+                </div>
+            </div>
+
+            <div class="col-md-3 d-flex flex-column text-center justify-content-center">
+
+                <label>Include in response</label>
+
+                <div class="m-auto">
+                    <RadzenSwitch @bind-Value=@_newHeader.Incoming Style="margin-bottom: 20px" Disabled="Disabled" />
+                </div>
+            </div>
+
+            <div class="col-md-1 d-flex flex-column text-center justify-content-center">
+                <RadzenButton Text="+" Disabled="@(!IsValidNewHeader() || Disabled)" Click="@AddOutGoingHeader" />
+            </div>
+        </div>
+        <div class="row">
+            @if(Headers.Count > 0) {
+                <RadzenListBox @ref="_listBox" @bind-Value="@_value"
+                               Data="@Headers"
+                               AllowFiltering="false"
+                               class="h-100 w-100 item-list list-span-fix"
+                               TValue="String"
+                           ValueProperty="@ValueProperty" Disabled="Disabled">
+                    <Template>
+                        @{
+                            @if (context is ServiceHeaderDto header)
+                            {
+                                <div class="d-flex">
+                                    <div class="col-md-3 d-flex flex-column border-right text-center justify-content-center">
+                                        <label>Key</label>
+
+                                        <h3>@header.Name</h3>
+                                    </div>
+
+                                    <div class="col-md-2 d-flex flex-column border-right text-center justify-content-center">
+                                        <label>Enabled</label>
+
+                                        <div class="m-auto">
+                                            <ReadOnlyToggleState State=@header.Enabled Style="margin-bottom: 20px"/>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-md-3 d-flex flex-column border-right text-center justify-content-center">
+                                        <label>Forward in requests</label>
+
+                                        <div class="m-auto">
+                                            <ReadOnlyToggleState State=@header.Outgoing Style="margin-bottom: 20px"/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3 d-flex flex-column text-center justify-content-center">
+
+                                        <label>Include in response</label>
+
+                                        <div class="m-auto">
+                                            <ReadOnlyToggleState State=@header.Incoming Style="margin-bottom: 20px"/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-1 d-flex flex-column text-center justify-content-center">
+                                        <RadzenButton Text="X" Click="@(_ => RemoveHeader(header))"/>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </Template>
+                </RadzenListBox>
+            } 
+            else
+            {
+                <div class="row">
+                    <div class="col">
+                        <h6>No headers</h6>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    
+    [Parameter]
+    public string ValueProperty { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    string _value;
+
+    [Parameter]
+    public List<ServiceHeaderDto> Headers { get; set; } = new List<ServiceHeaderDto>();
+
+    ServiceHeaderDto _newHeader = new ServiceHeaderDto()
+    {
+        Enabled = true,
+        Outgoing = true
+    };
+
+    RadzenListBox<string> _listBox;
+
+    void AddOutGoingHeader()
+    {
+        Headers.Add(new ServiceHeaderDto() { Enabled = _newHeader.Enabled, Name = _newHeader.Name, Outgoing = _newHeader.Outgoing, Incoming = _newHeader.Incoming });
+        _newHeader.Enabled = true;
+        _newHeader.Name = null;
+        _newHeader.Incoming = false;
+        _newHeader.Outgoing = true;
+    }
+
+    void RemoveHeader(ServiceHeaderDto header)
+    {
+        _listBox.Reset();
+        Headers.Remove(header);
+    }
+
+    bool IsValidNewHeader()
+    {
+        if (string.IsNullOrWhiteSpace(_newHeader?.Name))
+            return false;
+
+        if(Headers.Any(h => h.Name == _newHeader.Name))
+        {
+            return false;
+        }
+
+        if (_newHeader.Incoming == false && _newHeader.Outgoing == false)
+            return false;
+
+        return true;
+    }
+}

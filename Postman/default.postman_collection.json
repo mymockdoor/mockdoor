@@ -1,0 +1,336 @@
+{
+	"info": {
+		"_postman_id": "8f09066f-06ae-45c4-a126-7480d6cd4b15",
+		"name": "default",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get Empty Tenant List",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Body Is Valid empty tenant list\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.tenants).to.be.an('array');\r",
+							"    pm.expect(jsonData.tenants).to.be.empty;\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/api/tenant/list",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"list"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Call Test URL Service",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n \"url\": \"https://www.bing.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/utilities/testurl",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"utilities",
+						"testurl"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Tenant",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Has Json Body with name set\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.id).to.exist;\r",
+							"    pm.expect(jsonData.name).to.eql(\"Johnny\");\r",
+							"    \r",
+							"    pm.collectionVariables.set(\"newTenantId\", jsonData.id);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Johnny\",\r\n    \"tenantPath\": \"john\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/tenant",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"tenant"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Tenant Duplicate Fails",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Body Is Valid error message\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.status).to.eql(400);\r",
+							"    pm.expect(jsonData.errors[\"Tenant Path\"]).to.exist;\r",
+							"    pm.expect(jsonData.errors[\"Tenant Path\"]).to.be.an('array');\r",
+							"    pm.expect(jsonData.errors[\"Tenant Path\"][0]).to.be.contain('Unavailable');\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Johnny 2\",\r\n    \"tenantPath\": \"john\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/tenant",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"tenant"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Service Group",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Has Json Body with group name\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.name).to.eql(\"group1\");\r",
+							"    \r",
+							"    pm.collectionVariables.set(\"newServiceGroupId\", jsonData.id);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"tenantId\": {{newTenantId}},\r\n    \"name\": \"group1\",\r\n    \"path\": \"gp1\",\r\n    \"enabled\": true\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/servicegroup/{{newTenantId}}",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"servicegroup",
+						"{{newTenantId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Service Group",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/servicegroup/{{newServiceGroupId}}",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"servicegroup",
+						"{{newServiceGroupId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Tenant and Cleanup",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.collectionVariables.unset(\"newTenantId\");\r",
+							"pm.collectionVariables.unset(\"newServiceGroupId\");"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/tenant/{{newTenantId}}",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"{{newTenantId}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "newTenantId",
+			"value": ""
+		}
+	]
+}

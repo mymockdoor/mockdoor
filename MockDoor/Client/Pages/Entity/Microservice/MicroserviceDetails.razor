@@ -1,0 +1,248 @@
+﻿@page "/microservice/viewdetails/{TenantId:int}/{Id:int}"
+
+@using MockDoor.Shared.Models.ServiceRequest
+@inherits BasePageComponent
+
+@inject MicroserviceService MicroserviceService
+@inject RequestService RequestService
+
+<PageTitle>View Microservice Details</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Path="@($"service-groups-overview/{TenantId}")" Text="Service Group Overview"/>
+        <RadzenBreadCrumbItem Text="View Microservice Details"/>
+    </RadzenBreadCrumb>
+</div>
+
+@if (_microservice == null)
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading/>
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>Microservice Details:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            @if(_microservice != null)
+            {
+                <div class="row">
+                    <div class="col">
+                        <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Name"/>
+                        </div>
+                        <div class="col">
+                            <p>@_microservice.Name</p>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Path"/>
+                        </div>
+                        <div class="col">
+                            <p>@_microservice.Path</p>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Target Url/Domain"/>
+                        </div>
+
+                        <div class="col">
+                            @if (!string.IsNullOrWhiteSpace(_microservice.TargetUrl))
+                            {
+                                <AnimatedHealthStatusIndicator TestUrl="@_microservice.TargetUrl"/>
+                                <p class="flex-grow-1 m-auto">@_microservice.TargetUrl</p>
+                            }
+                            else
+                            {
+                                <p class="flex-grow-1 m-auto">[Not Set]</p>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Fake Delay (ms)"/>
+                        </div>
+                        <div class="col">
+                            <p>@_microservice.FakeDelay</p>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Enabled"/>
+                        </div>
+
+                        <div class="col">
+                            <ReadOnlyToggleState State="@_microservice.Enabled" TrueText="Enabled" FalseText="Disabled"/>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Header Filtering Mode"/>
+                        </div>
+
+                        <div class="col">
+                            <p>@_microservice.HeadersMode.ToString()</p>
+                        </div>
+                    </div>
+
+                    <ServiceHeaderListField Disabled="true" Headers=@_microservice.Headers ValueProperty="Name"/>
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Proxy Mode:"/>
+                        </div>
+
+                        <div class="col">
+                             <ReadOnlyToggleState State="@_microservice.ProxyMode" TrueText="Enabled" FalseText="Disabled"/>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Randomise Mock Results"/>
+                        </div>
+
+                        <div class="col">
+                            <RadzenSwitch @bind-Value="@_microservice.RandomiseMockResult" /> 
+                            <ReadOnlyToggleState State="@_microservice.RandomiseMockResult" TrueText="True" FalseText="False"/>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Tenant Passthrough"/>
+                        </div>
+
+                        <div class="col">
+                            <ReadOnlyToggleState State="@_microservice.PassThroughTenant" TrueText="True" FalseText="False"/>
+                        </div>
+                    </div>
+
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Simulation Time"/>
+                        </div>
+
+                        <div class="col">
+                            @if (_microservice.SimulateTime == null)
+                            {
+                                <p>[Not Set]</p>
+                            }
+                            else
+                            {
+                                <p>@_microservice.SimulateTime.Value.ToString("dd/MM/yy HH:mm:ss.ffff")</p>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="d-flex">
+                        <div class="flex-grow-1"></div>
+                        
+                        <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Edit" Click="@(() => NavigationManager.NavigateTo($"microservice/edit/{TenantId}/{Id}"))"/>
+
+                        <RadzenButton ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))"/>
+
+                        <div class="flex-grow-1"></div>
+                    </div>
+                </div>
+                </div>
+            }
+            
+            @if (_microserviceRequests?.Count > 0)
+            {
+                <div class="row mt-4">
+                    <div class="col">
+                        <RadzenCard>
+                                    @if (_microserviceRequests.Count > 0)
+                                    {
+                                        <h2>Requests:</h2>
+                                        <div style="height: 365px;">
+                                            <SimpleEntityList Items="@_microserviceRequests" ValueProperty="ID" TextProperty="FromUrl">
+                                                <StartListItem Context="serviceRequest">
+                                                    @if (serviceRequest.Enabled)
+                                                    {
+                                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled" />
+                                                    }
+                                                </StartListItem>
+    
+                                                <ListItem Context="serviceRequest">
+                                                    <span class="p-2 flex-grow-1">@serviceRequest.FromUrl</span>
+                                                </ListItem>
+    
+                                                <EndListItem Context="serviceRequest">
+                                                    <div class="d-flex">
+                                                        <RadzenButton   class="mr-1"
+                                                                        Click="@(() => NavigationManager.NavigateTo($"request/viewdetails/{TenantId}/{serviceRequest.Id}"))"
+                                                                        ButtonStyle="ButtonStyle.Primary" Icon="preview" Size="ButtonSize.Small"/>
+
+                                                        <RadzenButton   
+                                                                        Click="@(() => NavigationManager.NavigateTo($"request/edit/{TenantId}/{serviceRequest.Id}"))"
+                                                                        ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small"/>
+                                                    </div>
+                                                </EndListItem>
+                                            </SimpleEntityList>
+                                        </div>
+                                    }
+                        </RadzenCard>
+                    </div>
+                </div>
+            }
+        </ChildContent>
+    </RadzenPanel>
+}
+
+@code {
+
+    [Parameter]
+    public int ServiceGroupId { get; set; }
+
+    [Parameter]
+    public int TenantId { get; set; }
+    
+    [Parameter]
+    public int Id { get; set; }
+
+    MicroserviceResultDto _microservice;
+    private List<ServiceRequestDto> _microserviceRequests;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await MicroserviceService.GetMicroserviceAsync(Id);
+
+        if (response.IsSuccessStatusCode)
+        {
+            _microservice = response.Content;
+        }
+
+        var requestResponse = await RequestService.GetRequestsAsync(Id); 
+            
+        if (requestResponse.IsSuccessStatusCode)
+        {
+            _microserviceRequests = requestResponse.Content;
+        }
+    }
+}

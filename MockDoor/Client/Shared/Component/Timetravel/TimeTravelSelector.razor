@@ -1,0 +1,80 @@
+﻿
+<RadzenCard>
+    @if (Id == null) 
+    {
+        <h2>No Request Id Set!</h2>
+    }
+    else if (GetMinDateTimeIfExists() != null)
+    {
+        @if(!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <GeneralError Message="@_errorMessage" />
+        }
+        <div class="timetravel-container">
+            <div class="timetravel-button mr-1">
+                <RadzenButton Text="<<" Click="@FirstAsync" />
+            </div>
+            <div class="timetravel-button mr-1">
+                <RadzenButton Text="<" Click="@PreviousAsync" />
+            </div>
+            
+            <div class="d-flex flex-grow-1">
+                
+                @if (_sliderIndex >= 0)
+                {
+                    <div class="timetravel-selected-time mr-1 overlay-container flex-grow-1 ">
+                    
+                        <RadzenDatePicker InputClass=""
+                                          TValue="DateTime?" 
+                                          DateRender=@DateRenderSpecial 
+                                          Min="@GetMinDate()"
+                                          ShowTime="true" 
+                                          ShowSeconds="true" 
+                                          HoursStep="1" 
+                                          MinutesStep="1" 
+                                          SecondsStep="10"
+                                          Change="@(async (arg) => await UpdateCurrentDateTimeAsync(arg))"
+                                          @bind-Value=@CurrentDateTime
+                                          Class="w-100 picker overlay-box" />
+
+                        @if(CurrentDateTime == null)
+                        {
+                            <div class="overlay-box overlay">
+                                <p>latest</p>
+                            </div>
+                        }
+                    </div>
+                    
+                    <MillisecondTextBox Value="@CurrentDateTime" ValueChanged="@(async arg => await UpdateCurrentDateTimeAsync(arg))" />
+                }
+                
+            </div>
+            <div class="timetravel-button mx-1">
+                <RadzenButton Text=">" Click="@NextAsync" />
+            </div>
+            <div class="timetravel-button">
+                <RadzenButton Text=">>" Click="@LastAsync" />
+            </div>
+        </div>
+
+        <div class="slider-container my-2">
+            <div class="slider mr-1 m-auto" >
+                <RadzenSlider TValue="int" Min="0" Max="@Max" @bind-Value=@_sliderIndex Change=@(async args => await OnSetSliderAsync(args)) Class="w-100" />
+            </div>
+            @if (ShowSubmit)
+            {
+                <div class="button ml-3 mr-1">
+                    <RadzenButton Text="Submit" Click="@(async () => await SubmitAsync())" />
+                </div>
+            }
+        </div>
+    }
+    else if(HasMinDateTimeLoaded())
+    {
+        <h2>No history available</h2>
+    }
+    else
+    {
+        <h2>loading...</h2>
+    }
+</RadzenCard>

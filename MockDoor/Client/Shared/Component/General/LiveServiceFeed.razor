@@ -1,0 +1,134 @@
+@using System.Globalization
+@implements IAsyncDisposable
+
+@inject NavigationManager NavigationManager
+@inject MicroserviceService MicroserviceService
+
+<div class="d-flex">
+    <h4 class="flex-grow-1">Feed - @MicroserviceId</h4>
+    <button @onclick=@(_ => { 
+                                   _messages.Clear();
+                                   if (_grid != null)
+                                 {
+                                     _grid.Reload();
+                                 }
+                     })>Clear</button>
+</div>
+<RadzenTabs Class="w-100 my-2 mx-auto" RenderMode="TabRenderMode.Client" >
+        <Tabs>
+            <RadzenTabsItem Text="Raw Feed">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Request Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var message in _messages.OrderByDescending(m => m.Timestamp))
+                        {
+                            <tr>
+                                <td>@message.Timestamp.ToString(CultureInfo.CurrentCulture)</td>
+                                <td style="max-width: 90vw;"><div class="overflow-auto"><pre style="word-break: break-all; white-space: pre-wrap;">@JsonConvert.SerializeObject(@message, Formatting.Indented)</pre></div></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </RadzenTabsItem>
+            <RadzenTabsItem Text="Detailed">
+                <RadzenDataGrid @ref="_grid" AllowFiltering="true" AllowPaging="true" AllowColumnResize="true" PageSize="20" AllowSorting="true" Data="@_messages" TItem="HttpRequestDto">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="HttpRequestDto" Property="Timestamp" Width="70px" Title="Timestamp" SortOrder="SortOrder.Descending">
+                            <Template Context="data">
+                                @data.Timestamp.ToString(CultureInfo.CurrentCulture)
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="HttpRequestDto" Property="Endpoint" Width="90px" Title="Endpoint" />
+                        <RadzenDataGridColumn TItem="HttpRequestDto" Property="Body" Width="90px"  Title="Body" >
+                            <Template Context="data">
+                                @if (data.Body != null)
+                                {
+                                    <pre style="word-break: break-all; white-space: pre-wrap;">@data.Body</pre>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="HttpRequestDto" Property="QueryString" Width="90px" Title="Query Parameters" />
+                        <RadzenDataGridColumn TItem="HttpRequestDto" Property="HttpMethod" Width="40px" Title="Method" />
+                        <RadzenDataGridColumn TItem="HttpRequestDto" Property="Headers" Width="290px" Title="Headers (forwarded headers in bold)">
+                            <Template Context="data">
+                                @if (data.Headers?.Count() > 0)
+                                {
+                                    <ul class="list-unstyled">
+                                        @foreach (var header in data.Headers)
+                                        {
+                                            <li class="@(IsForwardedHeader(header.Key) ? "font-weight-bold" : "")">@header.Key : @header.Value</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p>no headers!</p>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </RadzenTabsItem>
+        </Tabs>
+    </RadzenTabs>
+
+@code {
+    private HubConnection _hubConnection;
+    private List<HttpRequestDto> _messages = new List<HttpRequestDto>();
+    RadzenDataGrid<HttpRequestDto> _grid;
+
+    [Parameter]
+    public int MicroserviceId { get; set; }
+
+    MicroserviceResultDto _microservice;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("requesthub"))
+            .Build();
+
+        _hubConnection.On<HttpRequestDto>($"{MicroserviceId}/SendRequest", (message) =>
+        {
+            _messages.Add(message);
+            if (_grid != null)
+            {
+                _grid.Reload();
+            }
+            StateHasChanged();
+        });
+
+        await _hubConnection.StartAsync();
+
+        if (MicroserviceId > 0)
+        {
+            var response = await MicroserviceService.GetMicroserviceAsync(MicroserviceId);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _microservice = response.Content;
+            }
+        }
+    }
+
+    public bool IsConnected =>
+        _hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+
+    private bool IsForwardedHeader(string headerName)
+    {
+        return _microservice?.Headers?.Any(m => m.Enabled && m.Outgoing && m.Name.Equals(headerName)) ?? false;
+    }
+}

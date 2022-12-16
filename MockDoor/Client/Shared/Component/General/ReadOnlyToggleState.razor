@@ -1,0 +1,30 @@
+﻿
+<div @attributes="InputAttributes" >
+    @if (State)
+    {
+        <RadzenBadge IsPill="true" Shade="Shade" BadgeStyle="BadgeStyle.Success" Text="@TrueText" />
+    }
+    else
+    {
+        <RadzenBadge IsPill="true" Shade="Shade" BadgeStyle="BadgeStyle.Danger" Text="@FalseText" />
+    }
+</div>
+
+@code {
+    [Parameter]
+    public bool State { get; set; }
+
+    [Parameter]
+    public Shade Shade { get; set; } = Shade.Default;
+
+    [Parameter]
+    public string TrueText { get; set; } = "ON";
+
+
+    [Parameter]
+    public string FalseText { get; set; } = "OFF";
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object> InputAttributes { get; set; } =
+        new Dictionary<string, object>();
+}

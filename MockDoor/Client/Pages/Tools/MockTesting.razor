@@ -1,0 +1,328 @@
+﻿@page "/mock-testing"
+
+@inherits BasePageComponent
+
+@{
+    void OnChangedMicroservice(MicroserviceResultDto arg)
+    {
+        SelectedMicroservice = arg;
+        StateHasChanged();
+    }
+}
+
+<PageTitle>Mock Testing</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="Mock Testing" Icon="line_weight" />
+    </RadzenBreadCrumb>
+</div>
+
+<MicroserviceSelectorPanel SelectedTenantChanged="@(arg => SelectedTenant = arg)" 
+                           SelectedServiceGroupChanged="@(OnChangeSelectedGroup())"
+                           SelectedMicroserviceChanged="@(OnChangedMicroservice)" 
+                           ShowCreateButtons="true" />
+
+<div class="row mt-2">
+<div class="col-md-12" >
+@if (SelectedMicroservice?.Name == null)
+{
+    <RadzenPanel>
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel>
+    <HeaderTemplate>
+        <div class="d-flex w-100">
+            <div class="w-100 flex-grow-1 text-left">
+                <h2>Microservice @SelectedMicroservice.Name:</h2>
+            </div>
+            
+            <RadzenButton class="m-2" Click="@(() => NavigationManager.NavigateTo($"requests-manager/{SelectedTenant.Id}/{SelectedMicroservice.Id}?returnUrl={ReturnUrl}"))"
+                          ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall">View Results</RadzenButton>
+            
+            <RadzenButton class="my-2" Click="@(() => NavigationManager.NavigateTo($"microservice/edit/{SelectedTenant.Id}/{SelectedMicroservice.Id}?returnUrl={ReturnUrl}"))"
+                          ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="mode_edit"/>
+        </div>
+    </HeaderTemplate>
+    <ChildContent>
+    <div class="row">
+    <div class="col">
+    <h4>Microservice details</h4>
+
+    <div class="row">
+        <div class="col-md-1 align-right my-2">
+            <RadzenLabel Text="Name" class="my-auto"/>
+        </div>
+        <div class="col my-2">
+            <p class="my-auto">@SelectedMicroservice.Name</p>
+        </div>
+
+        <div class="col-md-1 align-right my-2">
+            <RadzenLabel Text="Path" class="my-auto"/>
+        </div>
+        <div class="col my-2">
+            <p class="my-auto">@SelectedMicroservice.Path</p>
+        </div>
+                                
+        <div class="col-md-1 align-right my-2">
+            <RadzenLabel Text="Headers Mode" class="my-auto"/>
+        </div>
+        <div class="col my-2">
+            <p class="my-auto">@SelectedMicroservice.HeadersMode</p>
+        </div>
+
+        <div class="col-md-2 align-right my-2">
+            <RadzenLabel Text="Fake Delay (ms)" class="my-auto"/>
+        </div>
+        <div class="col my-2">
+            <p class="my-auto">@SelectedMicroservice.FakeDelay (ms)</p>
+        </div>
+    </div>
+
+    <div class="row border-top border-bottom mb-2">
+        <div class="col-md-1 my-2">
+            <RadzenLabel Text="Enabled" class="my-auto"/>
+        </div>
+
+        <div class="col my-1">
+            <div class="my-auto">
+                <ReadOnlyToggleState State="@SelectedMicroservice.Enabled" TrueText="Enabled" FalseText="Disabled"/>
+            </div>
+        </div>
+
+        <div class="col-md-1 my-2">
+            <RadzenLabel Text="Proxy Mode" class="my-auto"/>
+        </div>
+
+        <div class="col my-1">
+            <div class="my-auto">
+                <ReadOnlyToggleState State="@SelectedMicroservice.ProxyMode" TrueText="Enabled" FalseText="Disabled"/>
+            </div>
+        </div>
+
+        <div class="col-md-1 my-2">
+            <RadzenLabel Text="Tenant Passthrough" class="my-auto"/>
+        </div>
+
+        <div class="col my-1">
+            <div class="my-auto">
+                <ReadOnlyToggleState State="@SelectedMicroservice.PassThroughTenant" TrueText="Enabled" FalseText="Disabled"/>
+            </div>
+        </div>
+
+        <div class="col-md-2 my-2">
+            <RadzenLabel Text="Randomised Mock Results" class="my-auto"/>
+        </div>
+
+        <div class="col my-1">
+            <div class="my-auto">
+                <ReadOnlyToggleState State="@SelectedMicroservice.RandomiseMockResult" TrueText="True" FalseText="False"/>
+            </div>
+        </div>
+    </div>
+
+    <h4>Request details</h4>
+    <div class="row">
+        <div class="col-md-1 align-right my-2">
+            <RadzenLabel Text="Target Endpoint" class="my-auto"/>
+        </div>
+        <div class="col my-1">
+            <div class="w-100 d-flex my-auto">
+                <p class="m-auto">@(SelectedMicroservice.TargetUrl)</p>
+                <RadzenTextBox class="flex-grow-1 ml-1" Name="TestUrl" @bind-Value=@_testUrl @oninput="@(args => _testUrl = args.Value as string)" @onkeydown="@EnterOnTestAsync" />
+                <RadzenRequiredValidator Component="TestUrl" Text="Test Endpoint is required" Popup=@(true) Style="position: absolute"/>
+
+                <RadzenButton class="ml-1" ButtonType="ButtonType.Submit" Text="Run Test" Click="@TestAsync" IsBusy="@_isBusy" BusyText="testing ..."  Disabled="@(DisableTest())"/>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row border-top"  @oncontextmenu=@(ShowCopyUrlContextMenu) @oncontextmenu:preventDefault="true">
+        <div class="col-md-1 align-right d-flex">
+            <div class="my-2">
+                <RadzenLabel Text="Mock Endpoint" class="my-2" />                                        
+            </div>
+        </div>
+        <div class="col my-auto d-flex">
+            <span class="my-auto">@GetDomain()api/mock/</span>
+            <span class="my-auto" @ref="_mocktestingendpointrow">
+                <RadzenDropDown Style="width: 85px;" Data="@_parameterOrderList"
+                                MouseEnter="@(arg => ShowTooltip(arg, new TooltipOptions(){ Position = TooltipPosition.Bottom, Duration = 5000}))" @bind-Value="_pathOrder" Change="@(arg => _pathOrder = (string)arg)"/>
+            </span>
+                                        
+            <span class="my-auto">
+                @($"{GetUrlPathSegments()}/{_testUrl?.TrimStart('/') ?? ""}")
+            </span>
+        </div>
+    </div>
+
+    <div class="row border-top">
+        <div class="col-md-1 align-right my-2">
+            <RadzenLabel Text="Request Method" class="my-auto"/>
+        </div>
+
+        <div class="col my-2">
+            <div class="my-auto">
+                <RadzenRadioButtonList @bind-Value=@_currentRestType TValue="RestType">
+                    <Items>
+                        <RadzenRadioButtonListItem Text="GET" Value="RestType.GET"/>
+                        <RadzenRadioButtonListItem Text="POST" Value="RestType.POST"/>
+                        <RadzenRadioButtonListItem Text="PUT" Value="RestType.PUT"/>
+                        <RadzenRadioButtonListItem Text="PATCH" Value="RestType.PATCH"/>
+                        <RadzenRadioButtonListItem Text="DELETE" Value="RestType.DELETE"/>
+                    </Items>
+                </RadzenRadioButtonList>
+            </div>
+        </div>
+        
+        <div class="col-md-3 align-right my-2">
+            <RadzenLabel Text="Default Timeout in seconds(0 = default)" class="my-auto"/>
+        </div>
+
+        <div class="col my-2">
+            <div class="my-auto">
+                <RadzenNumeric TValue="int" Min="0" Max="600" @bind-Value="@_timeout" />
+            </div>
+        </div>
+    </div>
+
+    <div class="row border-top">
+        <div class="col-md-1 align-right my-2 align-self-center">
+            <RadzenLabel Text="Headers"/>
+        </div>
+
+        <div class="col my-2">
+            <div class="my-auto d-flex  align-self-center">
+                <RadzenLabel Text="Name" class="my-auto" />
+                <RadzenTextBox class="flex-grow-1 mx-2" Name="HeaderName" Value="@_newHeaderName" @oninput="@(args => _newHeaderName = (string)args.Value)"/>
+                <RadzenRequiredValidator Component="HeaderName" Popup="true" Text="Name is required"/>
+
+                <RadzenLabel Text="Value"  class="my-auto" />
+                <RadzenTextBox class="flex-grow-1 mx-2" Name="HeaderValue" Value="@_newHeaderValue" @oninput="@(args => _newHeaderValue = (string)args.Value)"/>
+                <RadzenRequiredValidator Component="HeaderValue" Popup="true" Text="Value is required"/>
+
+                <RadzenButton class="ml-1" ButtonType="ButtonType.Submit" Text="Add" Click="@AddHeaderAsync" Disabled="@(string.IsNullOrWhiteSpace(_newHeaderName) || string.IsNullOrWhiteSpace(_newHeaderValue))"/>
+            </div>
+            <div @ref="_headerElementReference">
+                <RadzenDataGrid @ref="_headersGrid" AllowColumnResize="true" class="mt-1" Data="@_headers" TItem="HeaderItem" Density="Density.Compact" AllowPaging="true" AllowSorting="true">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="HeaderItem" Property="Name" Title="Name" />
+                        <RadzenDataGridColumn TItem="HeaderItem" Property="Value" Title="Value (right click to copy)">
+                            <Template>
+                                <div @oncontextmenu=@(arg => ShowCopyHeaderContextMenu(arg, context.Value)) @oncontextmenu:preventDefault="true">
+                                    @context.Value
+                                </div>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="HeaderItem"  Context="header" Filterable="false" Sortable="false" TextAlign="TextAlign.Center"  Title="Remove?" Width="75px">
+                            <Template Context="header">
+                                <RadzenButton Click="@(_ => DeleteHeaderAsync(header))" Size="ButtonSize.ExtraSmall" Icon="delete" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+        </div>
+    </div>
+
+    <div class="row border-top border-bottom mb-2">
+        <div class="col-md-1 align-right my-2">
+            <RadzenLabel Text="Request Body"/>
+        </div>
+
+        <div class="col my-2">
+            <div class="my-auto">
+                <RadzenTextArea class="w-100" Style="height: 150px;" Disabled="@(_currentRestType == RestType.GET || _currentRestType == RestType.DELETE)" Value="@_testBody" Change="@(args => _testBody = args)"/>
+            </div>
+        </div>
+    </div>
+
+    <h4>Response details</h4>
+    <RadzenCard Style="width: 100%;">
+
+        <div class="row w-100">
+            <RadzenLabel class="col-md-1" Text="Status code:"/>
+
+            @if (_responseCode == null)
+            {
+                <b class="col">no result yet!</b>
+            }
+            else
+            {
+                <b class="col">@_responseCode</b>
+            }
+        </div>
+
+        <div class="row">
+            <RadzenLabel class="col-md-1" Text="Body:"/>
+
+            <div class="col">
+                @if (!string.IsNullOrWhiteSpace(_testResult) || _responseCode != null)
+                {
+                    <pre style="border: 1px solid #808080; max-height: 400px; overflow: auto; background-color: #dedede">
+@_testResult.MakePretty()   
+</pre>
+                }
+                else
+                {
+                    <p style="border: 1px solid #808080; max-height: 400px; overflow: auto; background-color: #dedede">No results yet!</p>
+                }
+            </div>
+        </div>
+
+        <div class="row">
+            <RadzenLabel class="col-md-1" Text="latency (ms):"/>
+
+            <div class="col">
+                @if (_elapsedTime == null)
+                {
+                    <p>No results yet!</p>
+                }
+                else
+                {
+                    <p>@_elapsedTime ms</p>
+                }
+            </div>
+        </div>
+        
+        <div class="row">
+            <RadzenLabel class="col-md-1" Text="Response Headers:"/>
+                                
+            <div class="col">
+                <RadzenDataGrid class="mt-1" Data="@_responseHeaders" TItem="HeaderItem" Density="Density.Compact" AllowPaging="true" AllowSorting="true">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="HeaderItem" Property="Name" Title="Name" />
+                        <RadzenDataGridColumn TItem="HeaderItem" Property="Value" Title="Value" />
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+        </div>
+    </RadzenCard>
+    </div>
+    </div>
+    </ChildContent>
+    </RadzenPanel>
+}
+</div>
+</div>
+
+@code{
+    void ShowCopyUrlContextMenu(MouseEventArgs args) => ContextMenuService.Open(args, _ =>
+        @<RadzenMenu Click="@OnCopyUrlAsync">
+            <RadzenMenuItem Text="Copy Url" />
+        </RadzenMenu>);
+    
+    void ShowCopyHeaderContextMenu(MouseEventArgs args, string value) => ContextMenuService.Open(args, _ =>
+        @<RadzenMenu Click="@(() => OnCopyHeaderValueAsync(value))">
+            <RadzenMenuItem Text="Copy Header Value" />
+        </RadzenMenu>);
+}

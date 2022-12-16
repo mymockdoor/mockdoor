@@ -1,0 +1,23 @@
+@if (BadRequestResult?.Errors?.Count > 0)
+                        {
+                            <span class="text-danger">Error(s):</span>
+                            <ul class="text-danger">
+                                @foreach (var errors in BadRequestResult.Errors.Keys)
+                                {
+                                    <li class="text-danger">
+                                        @errors:
+                                        <ul class="text-danger">
+                                            @foreach (var error in BadRequestResult.Errors[errors])
+                                            {
+                                                <li class="text-danger">@error</li>
+                                            }
+                                        </ul>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+@code {
+    [Parameter]
+    public BadRequestResultDto BadRequestResult { get; set; }
+}

@@ -1,0 +1,153 @@
+﻿@page "/graph-request-clicked-dialog/{ResponseId}"
+
+@inject DialogService DialogService
+
+@inject ResponseService ResponseService
+@inject SimulateTimeService SimulateTimeService
+
+@if (ResponseId == 0)
+{
+    <GeneralError Message="Error no response id provided when attempting to delete. Please contact an administrator" />
+}
+else  if (_mockResponse == null)
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel Style="margin: 15px; ">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>Response Details:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">
+                <div class="col">
+                    <h4 style="margin-bottom: 20px;">Parent Service Request ID: @_mockResponse.ServiceRequestId</h4>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="ID" />
+                        </div>
+                        <div class="col">
+                            @_mockResponse.Id
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Description" />
+                        </div>
+                        <div class="col">
+                            @_mockResponse.Description
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Code" />
+                        </div>
+                        <div class="col">
+                            @_mockResponse.Code (@_mockResponse.Code.ToString())
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Encoding" />
+                        </div>
+                        <div class="col">
+                            @_mockResponse.Encoding.ToString()
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Body" />
+                        </div>
+                        <div class="col">
+                            <pre class="w-100 mb-0" style="max-height: 400px;">@_mockResponse.Body.MakePretty()</pre>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Priority" />
+                        </div>
+                        <div class="col">
+                            <pre class="w-100 mb-0" style="max-height: 400px;">@_mockResponse.Priority</pre>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Code" />
+                        </div>
+                        <div class="col">
+                            @_mockResponse.Encoding.ToString()
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Enabled" />
+                        </div>
+
+                        <div class="col">
+                            <ReadOnlyToggleState State="@(_mockResponse.Enabled)" TrueText="Enabled" FalseText="Disabled" />
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                    {
+                        <div class="row" style="margin-bottom: 48px;">
+                            <div class="col">
+                                <p>@_errorMessage</p>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+                <div class="col-md-12 text-center">
+                    <RadzenButton Click="@SetSimulateAsync" Text="Set as simulation point" />
+                    <RadzenButton Click="@((_) => DialogService.Close())" ButtonStyle="ButtonStyle.Secondary" Text="Done" />
+                </div>
+            </div>
+        </ChildContent>
+    </RadzenPanel>
+}
+@code {
+    [Parameter]
+    public int ResponseId { get; set; }
+
+    private MockResponseDto _mockResponse;
+
+    private string _errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ResponseId > 0)
+        {
+            var response = await ResponseService.GetResponseAsync(ResponseId);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _mockResponse = response.Content;
+            }
+        }
+    }
+
+    async Task SetSimulateAsync()
+    {
+        var response = await SimulateTimeService.SetSimulateTime(_mockResponse.ServiceRequestId, _mockResponse.CreatedUtc, TimeTravelScope.Request);
+
+        _errorMessage = !response.IsSuccessStatusCode ? response.Message : null;
+    }
+}

@@ -1,0 +1,593 @@
+﻿@page "/setup-wizard"
+
+@inherits BasePageComponent
+
+<PageTitle>Setup Wizard</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home" />
+        <RadzenBreadCrumbItem Text="Setup Wizard" Icon="settings_suggest" />
+    </RadzenBreadCrumb>
+</div>
+
+<div class="pt-2">
+<h1>Setup Wizard</h1>
+
+<RadzenCard>
+<RadzenSteps>
+<Steps>
+<RadzenStepsItem Text="Tenants">
+    <h2>Tenants: </h2>
+    
+    <h4>Existing Tenant(s): </h4>
+    <div class="d-flex mb-3">
+        <div style="line-height: 2.2rem;">
+            <RadzenLabel Text="Tenant"/>
+        </div>
+        <div class="flex-grow-1 mx-2">
+            <RadzenDropDown @bind-Value="@_selectedExistingTenant" 
+                            Data="@(_existingTenants?.Tenants.Where(t => !SelectedExistingTenants.Contains(t)))"  
+                            AllowFiltering="true" 
+                            TValue="int?" 
+                            ValueProperty="ID"
+                            TextProperty="Name" 
+                            Change="@InsertExistingTenantAsync" />
+        </div>
+    </div>
+    
+    <div class="row my-2">
+        <div class="col-md-12">
+            <RadzenDataGrid 
+                            @ref="_existingTenantsGrid"
+                            PageSize="10"
+                            AllowFiltering="true"
+                            AllowPaging="true"
+                            AllowColumnResize="true"
+                            AllowSorting="true"
+                            SelectionMode="DataGridSelectionMode.Single"
+                            Data="@SelectedExistingTenants"
+                            TItem="BaseTenantDto">
+                <Columns>
+                    <RadzenDataGridColumn TItem="BaseTenantDto" Property="Name" Title="Name" />
+             
+                    <RadzenDataGridColumn TItem="BaseTenantDto" Property="Path" Title="Path" />
+
+                    <RadzenDataGridColumn TItem="BaseTenantDto" Context="sampleTenant" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="100px">
+                        <Template Context="tenant">
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" Class="m-1" Click="@(_ => ConfirmRemoveExistingTenantRowAsync(tenant))" @onclick:stopPropagation="true"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+    
+    <h4>New tenant(s): </h4>
+    <div class="d-flex mb-3">
+        <div style="line-height: 2.2rem;">
+            <RadzenLabel Text="Name"/>
+        </div>
+        <div class="flex-grow-1 mx-2">
+            <ValidatedTextInput PropertyName="Name" 
+                                @bind-Value="@NewTenant.Value.Name" 
+                                ParentObjectContext="@NewTenant.Value"
+                                EnableClientSideValidation="true" 
+                                IsValidClientStateChanged="@(b => _newTenantNameValid = b)" />
+            
+            <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@GetTenantNameError(NewTenant)</div>
+        </div>
+        
+        <div style="line-height: 2.2rem;">
+            <RadzenLabel Text="Tenant Path"/>
+        </div>
+        <div class="flex-grow-1 mx-2">
+            <ValidatedTextInput PropertyName="Path" 
+                                @bind-Value="@NewTenant.Value.Path" 
+                                ParentObjectContext="@NewTenant.Value"
+                                EnableClientSideValidation="true" 
+                                OnKeyDown="@EnterOnTenantAsync" 
+                                IsValidClientStateChanged="@(b => _newTenantPathValid = b)" />
+            
+            <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@GetTenantPathError(NewTenant)</div>
+        </div>
+        
+        <div>
+            <RadzenButton class="mr-1" Click="@InsertTenantAsync" Text="Add" Disabled="@(!IsNewTenantValid())" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <RadzenDataGrid 
+                            @ref="_tenantsGrid"
+                            PageSize="10"
+                            AllowFiltering="true"
+                            AllowPaging="true"
+                            AllowColumnResize="true"
+                            AllowSorting="true"
+                            SelectionMode="DataGridSelectionMode.Single"
+                            Data="@TenantCollection"
+                            TItem="SnapshotEntity<BaseTenantDto>"
+                            RowUpdate="@OnUpdateTenantRow" RowCreate="@OnCreateTenantRow">
+                <Columns>
+                    <RadzenDataGridColumn TItem="SnapshotEntity<BaseTenantDto>" Property="Value.Name" Title="Name">
+                        <EditTemplate Context="tenant">
+                             <ValidatedTextInput PropertyName="@("Name-" + tenant.GetHashCode())" 
+                                                            @bind-Value="@tenant.Value.Name" 
+                                                            ParentObjectContext="@tenant.Value"
+                                                            EnableClientSideValidation="true" />
+                            <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@GetTenantNameError(tenant)</div>
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+   
+                    <RadzenDataGridColumn TItem="SnapshotEntity<BaseTenantDto>" Property="Value.Path" Title="Path">
+                        <EditTemplate Context="tenant">
+                             <ValidatedTextInput PropertyName="@("Path-" + tenant.GetHashCode())" 
+                                                            @bind-Value="@tenant.Value.Path" 
+                                                            ParentObjectContext="@tenant.Value"
+                                                            EnableClientSideValidation="true" />
+                            <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@GetTenantPathError(tenant)</div>
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+   
+                    <RadzenDataGridColumn TItem="SnapshotEntity<BaseTenantDto>" Context="sampleTenant" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="130px">
+                        <Template Context="tenant">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Class="m-1" Click="@(_ => EditTenantRowAsync(tenant))" @onclick:stopPropagation="true"/>
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" Class="m-1" Click="@(_ => ConfirmDeleteTenantRowAsync(tenant))" @onclick:stopPropagation="true"/>
+                        </Template>
+                        <EditTemplate Context="tenant">
+                            <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Primary" Class="m-1" Click="@(async _ => await SaveTenantRowAsync(tenant))" Disabled="@(!IsTenantValid(tenant))"/>
+                            <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Class="m-1" Click="@(_ => CancelTenantEdit(tenant))"/>
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+   
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div> 
+    
+</RadzenStepsItem>
+<RadzenStepsItem Text="Default Values" Disabled="CanOpenDefaultsStep()">
+    <RadzenCard>
+        <div class="row">
+            <div class="col">
+                <h2>Default Group Settings</h2>
+
+                <div class="row mb-3">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Group Name"/>
+                    </div>
+                    <div class="col-md-3">
+                           <ValidatedTextInput  PropertyName="Name" 
+                                                @bind-Value="@_defaultGroupDetails.Name" 
+                                                ParentObjectContext="@_defaultGroupDetails"
+                                                EnableClientSideValidation="true"
+                                                Disabled="@(_hasConfirmedDefaults)"
+                                                IsValidClientStateChanged="@(b => _groupNameIsValid = b)" />
+                    </div>
+                    
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Group Path"/>
+                    </div>
+                    <div class="col-md-3">
+                           <ValidatedTextInput  PropertyName="Path" 
+                                                @bind-Value="@_defaultGroupDetails.Path" 
+                                                ParentObjectContext="@_defaultGroupDetails"
+                                                EnableClientSideValidation="true"
+                                                Disabled="@(_hasConfirmedDefaults)"
+                                                IsValidClientStateChanged="@(b => _groupPathIsValid = b)" />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Default Health test url"/>
+                    </div>
+                    <div class="col">
+                        <TestableUrlFormField @bind-Value="_defaultGroupDetails.DefaultHealthCheckUrl"
+                                              TestType="TestType.All" 
+                                              Name="DefaultHealthCheckUrl"                                              
+                                              ParentObjectContext="@_defaultGroupDetails"
+                                              EnableClientSideValidation="true"
+                                              Disabled="@(_hasConfirmedDefaults)"
+                                              IsValidClientStateChanged="@(b => _groupUrlIsValid = b)"  />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row  no-gutters">
+            <div class="col">
+                <h2>Set default Microservice Values</h2>
+
+                <div class="row mb-3  no-gutters">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Proxy Mode"/>
+                    </div>
+                    <div class="col">
+                        <RadzenSwitch @bind-Value="@_defaultMicroservice.ProxyMode" Disabled="@(_hasConfirmedDefaults)"/>
+                    </div>
+                </div>
+
+                <div class="row  no-gutters" style="margin-bottom: 48px;">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Header Filtering Mode"/>
+                    </div>
+
+                    <div class="col">
+                        <RadzenDropDown class="w-100" 
+                                        @bind-Value="@_defaultMicroservice.HeadersMode" 
+                                        Data="HelperMethodsExtensions.GetEnumList<HeadersMode>()" 
+                                        AllowFiltering="true" 
+                                        ValueProperty="EnumValue" 
+                                        TextProperty="EnumName" 
+                                        Disabled="@(_hasConfirmedDefaults)"/>
+                    </div>
+                </div>
+
+                <div class="row mb-3  no-gutters">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Tenant Passthrough"/>
+                    </div>
+                    <div class="col">
+                        <RadzenSwitch @bind-Value="@_defaultMicroservice.PassThroughTenant" Disabled="@(_hasConfirmedDefaults)"/>
+                    </div>
+                </div>
+
+                <ServiceHeaderListField Headers="@_defaultMicroservice.Headers" ValueProperty="HeaderName" Disabled="@(_hasConfirmedDefaults)"/>
+
+                <div class="d-flex">
+                    <div class="flex-grow-1"></div>
+
+                    <RadzenButton class="mr-1" 
+                                  Click="@ConfirmDefaults" 
+                                  Text="@(_hasConfirmedDefaults ? "Change defaults" : "Confirm defaults")" 
+                                  Disabled="@(!IsGroupValid())" />
+                </div>
+            </div>
+        </div>
+    </RadzenCard>
+</RadzenStepsItem>
+<RadzenStepsItem Text="Microservices" Disabled="!_hasConfirmedDefaults || _deploying">
+    @if (MicroserviceCollection == null)
+    {
+        <ShowLoading/>
+    }
+    else
+    {
+        <div class="d-flex mb-3">
+            <div style="line-height: 2.2rem;">
+                <RadzenLabel Text="Name"/>
+            </div>
+            <div class="flex-grow-1 mx-2">
+                <ValidatedTextInput  PropertyName="Name" 
+                                     @bind-Value="@NewMicroservice.Value.Name" 
+                                     ParentObjectContext="@NewMicroservice.Value"
+                                     EnableClientSideValidation="true"
+                                     IsValidClientStateChanged="@(b => { _newMicroserviceNameValid = b; StateHasChanged(); })"
+                                     OnKeyDown="@EnterOnMicroserviceAsync" />
+                
+                <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@_newMicroserviceNameError</div>
+            </div>
+        
+            <div style="line-height: 2.2rem;">
+                <RadzenLabel Text="Path"/>
+            </div>
+            <div class="flex-grow-1 mx-2">
+                  <ValidatedTextInput  PropertyName="Path" 
+                                                     @bind-Value="@NewMicroservice.Value.Path" 
+                                                     ParentObjectContext="@NewMicroservice.Value"
+                                                     EnableClientSideValidation="true"
+                                                     IsValidClientStateChanged="@(b => { _newMicroservicePathValid = b; StateHasChanged(); })"
+                                                     OnKeyDown="@EnterOnMicroserviceAsync" />
+                                
+                <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@_newMicroservicePathError</div>
+            </div>
+        
+            <div style="line-height: 2.2rem;">
+                <RadzenLabel Text="Target Url"/>
+            </div>
+            <div class="flex-grow-1 mx-2">
+                
+                <TestableUrlFormField Name="TargetUrl" 
+                                      Value="@NewMicroservice.Value.TargetUrl"
+                                      Required="NewMicroservice.Value.ProxyMode" 
+                                      Compact="true" 
+                                      TestType="TestType.All" 
+                                      RunTestsOnLoad="false" 
+                                      ValueChanged="@(value => { NewMicroservice.Value.TargetUrl = value; StateHasChanged(); } )"
+                                      OnControlEnter="@EnterOnMicroserviceAsync"
+                                      ParentObjectContext="@NewMicroservice.Value"
+                                      IsValidClientStateChanged="@(b => { _newMicroserviceUrlValid = b; StateHasChanged(); })"
+                                      EnableClientSideValidation="true" />
+            </div>
+        
+            <div>
+                <RadzenButton class="mr-1" Click="@InsertMicroserviceAsync" Text="Add" Disabled="@(!ValidateMicroservice())" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <RadzenDataGrid @ref="_microservicesGrid"
+                                PageSize="10"
+                                AllowFiltering="true"
+                                SelectionMode="DataGridSelectionMode.Single"
+                                AllowPaging="true" AllowSorting="true" AllowColumnResize="true"
+                                Data="@MicroserviceCollection"
+                                @bind-Value="@SelectedMicroservice"
+                                TItem="SnapshotEntity<MicroserviceResultDto>"
+                                ColumnWidth="200px"
+                                RowUpdate="@OnUpdateMicroserviceRow">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Property="Value.Name" Title="Name" Width="100px;">
+                            <EditTemplate Context="microservice">
+                                <ValidatedTextInput PropertyName="@("Name-" + microservice.GetHashCode())" 
+                                                    @bind-Value="@microservice.Value.Name" 
+                                                    ParentObjectContext="@microservice.Value"
+                                                    EnableClientSideValidation="true" />
+                                <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@GetMicroserviceNameError(microservice)</div>
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Property="Value.Path" Title="Path" Width="100px;">
+                            <EditTemplate Context="microservice">
+                                <div class="flex-column">
+                                      <ValidatedTextInput PropertyName="@("Path-" + microservice.GetHashCode())" 
+                                                          @bind-Value="@microservice.Value.Path" 
+                                                          ParentObjectContext="@microservice.Value"
+                                                          EnableClientSideValidation="true" />
+                                    <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@GetMicroservicePathError(microservice)</div>
+                                </div>
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Property="Value.TargetUrl" Title="Target Url" Width="220px">
+                            <Template Context="microservice">
+                                <div class="d-flex">
+                                    @microservice.Value.TargetUrl
+                                    <AnimatedHealthStatusIndicator TestUrl="@microservice.Value.TargetUrl"/>
+                                </div>
+                            </Template>
+                            <EditTemplate Context="microservice">
+                                <TestableUrlFormField Name="@("TargetUrl-" + microservice.GetHashCode())" 
+                                                      Compact="true" 
+                                                      Required="@microservice.Value.ProxyMode" 
+                                                      Value="@microservice.Value.TargetUrl" 
+                                                      RunTestsOnLoad="false" 
+                                                      ValueChanged="@(value => microservice.Value.TargetUrl = value)"
+                                                      ParentObjectContext="@microservice.Value"
+                                                      EnableClientSideValidation="true"/> 
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Property="Value.FakeDelay" Title="Fake Delay" Width="100px">
+                            <Template Context="microservice">
+                                @microservice.Value.FakeDelay
+                            </Template>
+                            <EditTemplate Context="microservice">
+                                 <ValidatedNumericInput PropertyName="@("FakeDelay-" + microservice.GetHashCode())" 
+                                                                                          @bind-Value="@microservice.Value.FakeDelay" 
+                                                                                          ParentObjectContext="@microservice.Value"
+                                                                                          EnableClientSideValidation="true" />
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+                        
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Property="Value.ProxyMode" Title="Proxy Mode" Width="110px">
+                            <Template Context="microservice">
+                                @microservice.Value.ProxyMode
+                            </Template>
+                            <EditTemplate Context="microservice">
+                                <RadzenSwitch @bind-Value="@microservice.Value.ProxyMode"/>
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Property="Value.PassThroughTenant" Title="Pass Through Tenant" Width="150px">
+                            <Template Context="microservice">
+                                @microservice.Value.PassThroughTenant
+                            </Template>
+                            <EditTemplate Context="microservice">
+                                <RadzenSwitch @bind-Value="@microservice.Value.PassThroughTenant"/>
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Property="Value.HeadersMode" Title="Headers Filtering Mode" Width="165px">
+                            <EditTemplate Context="microservice">
+                                <RadzenDropDown class="w-100" @bind-Value=@microservice.Value.HeadersMode Data="HelperMethodsExtensions.GetEnumList<HeadersMode>()" AllowFiltering="true" ValueProperty="EnumValue" TextProperty="EnumName"/>
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Property="Value.Headers" Title="Headers">
+                            <Template Context="microservice">
+                                @if (microservice.Value.Headers != null)
+                                {
+                                    <div class="d-flex flex-md-wrap">
+                                        @foreach (var header in microservice.Value.Headers)
+                                        {
+                                            <div class="m-1">
+                                                <RadzenButton ButtonStyle="ButtonStyle.Primary">
+                                                    @header.Name
+                                                    <RadzenBadge Variant="Variant.Filled" IsPill="true" BadgeStyle="@(header.Enabled ? BadgeStyle.Success : BadgeStyle.Danger)" Text="@(GetHeaderButtonDescription(header))" Class="ml-2"/>
+                                                </RadzenButton>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </Template>
+                            <EditTemplate Context="microservice">
+                                @if (microservice.Value.Headers != null)
+                                {
+                                    <div class="d-flex flex-md-wrap">
+                                        @foreach (var header in microservice.Value.Headers)
+                                        {
+                                            <div class="m-1">
+                                                <RadzenTextBox @bind-Value="@header.Name" Name="@("HeaderName" + microservice.GetHashCode())"/>
+                                                <RadzenRequiredValidator Text="HeaderName is required" Component="@("HeaderName" + microservice.GetHashCode())" Popup="true" Style="position: absolute"/>
+
+                                                <RadzenButton ButtonStyle="ButtonStyle.Primary" Click="@((_) => CycleHeaderMode(header))">
+                                                    <RadzenBadge Variant="Variant.Filled" IsPill="true" BadgeStyle="@(header.Enabled ? BadgeStyle.Success : BadgeStyle.Danger)" Text="@(GetHeaderButtonDescription(header))" Class="ml-2"/>
+                                                </RadzenButton>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="SnapshotEntity<MicroserviceResultDto>" Context="sampleMicroservice" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="100px">
+                            <Template Context="microservice">
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Class="m-1" Click="@(_ => EditMicroserviceRowAsync(microservice))" @onclick:stopPropagation="true"/>
+                                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" Class="m-1" Click="@(_ => ConfirmDeleteMicroserviceRowAsync(microservice))" @onclick:stopPropagation="true"/>
+                            </Template>
+                            <EditTemplate Context="microservice">
+                                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Primary" Class="m-1" Click="@(async _ => await SaveMicroserviceRowAsync(microservice))" Disabled="@(!IsMicroserviceValid(microservice))"/>
+                                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Class="m-1" Click="@(_ => CancelMicroserviceEdit(microservice))"/>
+                            </EditTemplate>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+        </div>
+    }
+</RadzenStepsItem>
+<RadzenStepsItem Text="Deploy" Disabled="MicroserviceCollection?.Count() < 1 || _deploying">
+    <RadzenCard>
+        @if (!_deploying)
+        {
+            <h1>Summary</h1>
+            <div class="d-flex">
+                <div class="w-100">
+                    <h2>Service Group Details:</h2>
+                    <div class="row mb-3">
+                        <div class="col-md-3 align-right">
+                            <RadzenLabel Text="Name" />
+                        </div>
+                        <div class="col">
+                            <p>@_defaultGroupDetails.Name</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <RadzenLabel Text="Group Path" />
+                        </div>
+                        <div class="col">
+                            <p>@_defaultGroupDetails.Path</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <RadzenLabel Text="Default Health Check URL" />
+                        </div>
+
+                        <div class="col">
+                            <div class="d-flex">
+                                @if (!string.IsNullOrWhiteSpace(_defaultGroupDetails.DefaultHealthCheckUrl))
+                                {
+                                    <AnimatedHealthStatusIndicator TestUrl="@_defaultGroupDetails.DefaultHealthCheckUrl" />
+                                    <p class="flex-grow-1 m-auto">@_defaultGroupDetails.DefaultHealthCheckUrl</p>
+                                }
+                                else
+                                {
+                                    <p class="flex-grow-1 m-auto">[Not Set]</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="w-100">
+                    <h2>Microservices:</h2>
+                    <h3>New tenants</h3>
+                    <RadzenTree Style="width: 100%;">
+                        @foreach (var tenant in TenantCollection)
+                        {
+                            <RadzenTreeItem Text="@tenant.Value.Name">
+                                <ChildContent>
+                                    @foreach (var microservice in MicroserviceCollection)
+                                    {
+                                        <RadzenTreeItem Text="@microservice.Value.Name"/>
+                                    }
+                                </ChildContent>
+                                <Template>
+                                    <b>@context.Text</b>
+                                </Template>
+                            </RadzenTreeItem>
+                        }
+                    </RadzenTree>
+                
+                    <h3>Existing tenants</h3>
+                    <RadzenTree Style="width: 100%;">
+                        @foreach (var tenant in SelectedExistingTenants)
+                        {
+                            <RadzenTreeItem Text="@tenant.Name">
+                                <ChildContent>
+                                    @foreach (var microservice in MicroserviceCollection)
+                                    {
+                                        <RadzenTreeItem Text="@microservice.Value.Name"/>
+                                    }
+                                </ChildContent>
+                                <Template>
+                                    <b>@context.Text</b>
+                                </Template>
+                            </RadzenTreeItem>
+                        }
+                    </RadzenTree>
+                
+                    <RadzenButton Click="@DeployAsync" Text="Deploy" Disabled="@_deploying"/>
+                </div>
+            </div>
+        }
+        else
+        {
+            <ul class="w-100">
+                @foreach (var tenantDeploymentItem in _deploymentItems)
+                {
+                    <li>
+                        <b>@tenantDeploymentItem.Tenant.Name: @tenantDeploymentItem.DeploymentStatus</b>
+                        <ul class="ml-3">
+                            <li>Group: @tenantDeploymentItem.ServiceGroupDeploymentItem.ServiceGroup.Name - @tenantDeploymentItem.ServiceGroupDeploymentItem.DeploymentStatus</li>
+                            <li>
+                                <ul class="ml-3">
+                                    @foreach (var microserviceDeploymentItem in tenantDeploymentItem.MicroserviceDeployments)
+                                    {
+                                        @if (microserviceDeploymentItem.DeploymentStatus == DeploymentStatus.AlreadyExists)
+                                        {
+                                            <li>@microserviceDeploymentItem.Microservice.Name: @microserviceDeploymentItem.DeploymentStatus (and was not updated, please check it manually)</li>
+                                        }
+                                        else
+                                        {
+                                            <li>@microserviceDeploymentItem.Microservice.Name: @microserviceDeploymentItem.DeploymentStatus</li>
+                                        }
+                                    }
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                }
+            </ul>
+            
+            @if (GetFullDeploymentStatus() == DeploymentStatus.Complete)
+            {
+                <h2>Deployment successful</h2>
+                
+                <RadzenButton Text="View tenants" Click="@(_ => NavigationManager.NavigateTo("home"))" />
+            }
+            else if (GetFullDeploymentStatus() == DeploymentStatus.Failed)
+            {
+                <h2>Deployment completed with one or more failures!</h2>
+            }
+            else
+            {
+                <h2>Deploying...</h2>
+            }
+        }
+    </RadzenCard>
+</RadzenStepsItem>
+</Steps>
+</RadzenSteps>
+</RadzenCard>
+</div>

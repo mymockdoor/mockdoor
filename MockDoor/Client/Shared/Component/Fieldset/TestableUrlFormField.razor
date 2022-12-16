@@ -1,0 +1,384 @@
+﻿@inject ContextMenuService ContextMenuService
+@inject UtilityService UtilityService
+
+<div class="w-100 d-flex"  @oncontextmenu=@(ShowTestSelectContextMenu) @oncontextmenu:preventDefault="true">
+    
+    <ValidatedTextInput PropertyName="@Name" 
+                        Value="@Value" 
+                        ValueChanged="@(async args => await OnInputTargetUrl(args) )" 
+                        Required="@Required" 
+                        Disabled="@Disabled"
+                        BadRequestResult="BadRequestResult" 
+                        BadRequestResultChanged="@(async args => await BadRequestResultChanged.InvokeAsync(args))"
+                        ParentObjectContext="@ParentObjectContext"
+                        EnableClientSideValidation="@EnableClientSideValidation"
+                        IsValidClientStateChanged="@(async (b) => await IsValidClientStateChanged.InvokeAsync(b))"/>
+    
+    @if (Compact)
+    { 
+        @if (TestType == TestType.PingOnly)
+        {
+            <div class="ml-3" style="width: 180px; height: 35px;" >
+                <div class="test-status-chip" @onclick="@(async () => await RunPingTest())" style="background-color: @(GetStatusColor(_targetPingResult))">
+                    @if (_targetPingResult.Latency != null)
+                    {
+                        <span class="test-status-text">Ping (@_targetPingResult.Latency ms)</span>
+                    }
+                    else
+                    {
+                        <span class="test-status-text">Ping: @_targetPingResult.TestUrlResult.ToString()</span>
+                    }
+                </div>
+            </div>
+        }
+        
+        @if (TestType == TestType.RestOnly)
+        {
+            <div class="ml-3" style="width: 180px; height: 35px;">
+                <div class="test-status-chip" @onclick="@(async () => await RunRestTest())" style="background-color: @(GetStatusColor(_targetRestResult))">
+                    @if (_targetPingResult.Latency != null)
+                    {
+                        <span class="test-status-text">Rest (@_targetRestResult.Latency ms)</span>
+                    }
+                    else
+                    {
+                        <span class="test-status-text">Rest: @_targetRestResult.TestUrlResult.ToString()</span>
+                    }
+                </div>
+            </div>
+        }
+        
+        @if (TestType == TestType.All)
+        {
+            <div class="ml-3" style="width: 180px; height: 35px;">
+                <div class="test-status-chip" @onclick="@(async () => await RunAllTests())" style="background-color: @(GetCombinedStatusColor())">
+                    @if (_targetPingResult.Latency != null)
+                    {
+                        <span class="test-status-text">@GetCombinedStatus(): @_targetRestResult.Latency ms</span>
+                    }
+                    else
+                    {
+                        <span class="test-status-text">@GetCombinedStatus()</span>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        @if (TestType != TestType.RestOnly)
+        {
+            <div class="ml-3" style="width: 180px; height: 35px;">
+                <div class="test-status-chip" @onclick="@(async () => await RunPingTest())" style="background-color: @(GetStatusColor(_targetPingResult))">
+                    <span class="test-status-text">Ping: @_targetPingResult.TestUrlResult.ToString()</span>
+                </div>
+            </div>
+        }
+
+        @if (TestType != TestType.PingOnly)
+        {
+            <div class="ml-3" style="width: 180px; height: 35px;">
+                <div class="test-status-chip" @onclick="@(async () => await RunRestTest())" style="background-color: @(GetStatusColor(_targetRestResult))">
+                    <span class="test-status-text">REST: @_targetRestResult.TestUrlResult.ToString()</span>
+                </div>
+            </div>
+        }
+
+        @if (TestType == TestType.All)
+        {
+            <div class="ml-3" style="width: 180px; height: 35px;">
+                <div class="test-status-chip" @onclick="@(async () => await RunAllTests())" style="background-color: @(GetCombinedStatusColor())">
+                    <span class="test-status-text">Both: @(GetCombinedStatus())</span>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@if (!Compact)
+{
+    <div class="w-100 d-flex">
+        <span class="w-100 flex-grow-1">
+            @if (TestType != TestType.RestOnly)
+            {
+                <b>Ping test details: </b>
+                @if (string.IsNullOrWhiteSpace(_targetPingResult?.Message))
+                {
+                    <span>Target not yet tested!</span>
+                }
+                else
+                {
+                    <span>@_targetPingResult.Message</span>
+                }
+            }
+
+            @if (TestType != TestType.PingOnly)
+            {
+                <b style="margin-left: 20px;">REST test details: </b>
+                @if (string.IsNullOrWhiteSpace(_targetRestResult?.Message))
+                {
+                    <span>Target not yet tested!</span>
+                }
+                else
+                {
+                    <span>@_targetRestResult.Message</span>
+                }
+            }
+        </span>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Value { get; set; }
+    
+    [Parameter]
+    public bool? Required { get; set; }
+
+    [Parameter]
+    public string Name { get; set; } = "TargetUrl";
+
+    [Parameter]
+    public bool RunTestsOnLoad { get; set; }
+
+    [Parameter]
+    public bool Compact { get; set; }
+    
+    [Parameter]
+    public TestType TestType { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<KeyboardEventArgs> OnControlEnter { get; set; }
+    
+    [Parameter]
+    public BadRequestResultDto BadRequestResult { get; set; }
+    
+    [Parameter]
+    public EventCallback<BadRequestResultDto> BadRequestResultChanged { get; set; }
+    
+    [Parameter]
+    public bool EnableClientSideValidation { get; set; }
+
+    [Parameter]
+    public IValidatableObject ParentObjectContext { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> IsValidClientStateChanged { get; set; }
+    
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    PingTestResult _targetRestResult = new ()
+    {
+        TestUrlResult = TestUrlResult.Unknown
+    };
+
+    PingTestResult _targetPingResult = new ()
+    {
+        TestUrlResult = TestUrlResult.Unknown
+    };
+
+    bool _runTestsOnNextRender;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_runTestsOnNextRender && !string.IsNullOrWhiteSpace(Value))
+        {
+            _targetPingResult = await RunTest(true);
+            _targetRestResult = await RunTest(false);
+
+            _runTestsOnNextRender = false;
+            this.StateHasChanged();
+        }
+    }
+
+
+    protected override void OnParametersSet()
+    {
+        if (RunTestsOnLoad)
+        {
+            _runTestsOnNextRender = true;
+            PreparePingTestStatusMessage();
+            PrepareRestTestStatusMessage();
+
+            this.StateHasChanged();
+        }
+    }
+
+    private async Task OnInputTargetUrl(string value)
+    {
+        Value = value;
+        await ValueChanged.InvokeAsync(Value);
+
+        _targetPingResult.TestUrlResult = TestUrlResult.Unknown;
+        _targetPingResult.Message = null;
+
+        _targetRestResult.TestUrlResult = TestUrlResult.Unknown;
+        _targetRestResult.Message = null;
+    }
+
+    private string GetStatusColor(PingTestResult pingTestResult)
+    {
+        if (pingTestResult != null)
+        {
+            switch (pingTestResult.TestUrlResult)
+            {
+                case TestUrlResult.Failed: return "red;";
+                case TestUrlResult.Pending: return "orange;";
+                case TestUrlResult.Passed: return "green;";
+                default: return "grey;";
+            }
+        }
+        else
+        {
+            return "grey;";
+        }
+    }
+
+    string GetCombinedStatusColor()
+    {
+        if (_targetPingResult.TestUrlResult != _targetRestResult.TestUrlResult)
+        {
+            return "orangered;";
+        }
+        else
+        {
+            return GetStatusColor(_targetRestResult);
+        }
+    }
+
+    string GetCombinedStatus()
+    {
+        if (_targetPingResult.TestUrlResult != _targetRestResult.TestUrlResult)
+        {
+            return "Mixed";
+        }
+        else
+        {
+            switch (_targetRestResult.TestUrlResult)
+            {
+                case TestUrlResult.Failed: return "Failed";
+                case TestUrlResult.Pending: return "Pending";
+                case TestUrlResult.Passed: return "Passed";
+                default: return "Unknown";
+            }
+        }
+    }
+
+    private void PreparePingTestStatusMessage()
+    {
+        if (TestType != TestType.RestOnly)
+        {
+            if (string.IsNullOrWhiteSpace(Value))
+            {
+                _targetPingResult.TestUrlResult = TestUrlResult.Failed;
+                _targetPingResult.Message = "Failed: Url not set.";
+            }
+            else
+            {
+                _targetPingResult.TestUrlResult = TestUrlResult.Pending;
+                _targetPingResult.Message = "Running Ping test...";
+            }
+        }
+    }
+
+    private void PrepareRestTestStatusMessage()
+    {
+        if (TestType != TestType.PingOnly)
+        {
+            if (string.IsNullOrWhiteSpace(Value))
+            {
+                _targetRestResult.TestUrlResult = TestUrlResult.Failed;
+                _targetRestResult.Message = "Failed: Url not set.";
+            }
+            else
+            {
+                _targetRestResult.TestUrlResult = TestUrlResult.Pending;
+                _targetRestResult.Message = "Running REST test...";
+            }
+        }
+    }
+
+    private async Task RunAllTests()
+    {
+        PreparePingTestStatusMessage();
+        PrepareRestTestStatusMessage();
+
+        if (!string.IsNullOrWhiteSpace(Value))
+        {
+            _targetPingResult = await RunTest(true);
+            _targetRestResult = await RunTest(false);
+        }
+    }
+
+    private async Task RunPingTest()
+    {
+        PreparePingTestStatusMessage();
+
+        if (!string.IsNullOrWhiteSpace(Value) && TestType != TestType.RestOnly)
+            _targetPingResult = await RunTest(true);
+    }
+
+    private async Task RunRestTest()
+    {
+        PrepareRestTestStatusMessage();
+
+        if (!string.IsNullOrWhiteSpace(Value)  && TestType != TestType.PingOnly)
+            _targetRestResult = await RunTest(false);
+    }
+
+    private async Task<PingTestResult> RunTest(bool ping)
+    {
+        var result = await UtilityService.TestUrlAsync(Value, ping);
+
+        return result?.Content ?? new PingTestResult() { Message = result?.Message, TestUrlResult = TestUrlResult.Failed };
+    }
+    
+    void ShowTestSelectContextMenu(MouseEventArgs args) => ContextMenuService.Open(args, _ =>
+        @<RadzenMenu Click="OnTestModeSelected">
+            <RadzenMenuItem Text="@("Ping Only " + (TestType == TestType.PingOnly ? "(selected)" : "") + "")" Value="TestType.PingOnly"></RadzenMenuItem>
+            <RadzenMenuItem Text="@("Rest Only " + (TestType == TestType.RestOnly ? "(selected)" : "") + "")" Value="TestType.RestOnly"></RadzenMenuItem>
+            <RadzenMenuItem Text="@("Run All Tests " + (TestType == TestType.All ? "(selected)" : "") + "")" Value="@TestType.All" ></RadzenMenuItem>
+        </RadzenMenu>);
+            
+    void OnTestModeSelected(MenuItemEventArgs args)
+    {
+        var selection = (TestType)args.Value;
+
+        TestType = selection;
+        
+        ContextMenuService.Close();
+        StateHasChanged();
+    }
+}
+@code {
+    private async Task OnEnterPressed(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            if (e.CtrlKey)
+            {
+                await OnControlEnter.InvokeAsync(e);
+            }
+            else
+            {
+                switch (TestType)
+                {
+                    case TestType.PingOnly:
+                        await RunPingTest();
+                        break;
+                    case TestType.RestOnly:
+                        await RunRestTest();
+                        break;
+                    case TestType.All:
+                        await RunAllTests();
+                        break;
+                }
+            }
+        }
+    }
+}
+

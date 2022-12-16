@@ -1,0 +1,82 @@
+﻿@inject DialogService DialogService
+@inject ServiceGroupService ServiceGroupService
+
+<RadzenCard class="d-flex flex-column h-100">
+    @if (TenantId == 0)
+    {
+        <GeneralError Message="Error no tenant id provided when attempting to delete. Please contact an administrator" />
+    }
+    else if (_tenant == null)
+    {
+        <div class="flex-grow-1">loading...</div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Are you Sure you want to delete "@_tenant.TenantName"?</h2>
+            </div>
+        </div>
+
+        @if (_tenant.ServiceGroups != null && _tenant.ServiceGroups.Count > 0)
+        {
+
+            <div class="row flex-grow-1">
+                <div class="col-md-12">
+                    <h3 style="color: orange">Warning: Deleting this tenant will also delete the following Service groups and Microservices and any related mock responses for them</h3>
+                    
+                    
+                <RadzenTree Style="height: 300px" Data=@_tenant.ServiceGroups Expand=@OnExpand>
+                     <RadzenTreeLevel TextProperty="Name" Expanded=@ShouldExpand />
+                </RadzenTree>
+                </div>
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <RadzenButton Click="@((_) => DialogService.Close(true))" Text="OK" Style="margin-bottom: 10px; width: 150px" />
+                <RadzenButton Click="@((_) => DialogService.Close(false))" ButtonStyle="ButtonStyle.Secondary" Text="Cancel" Style="margin-bottom: 10px; width: 150px" />
+            </div>
+        </div>
+    }
+</RadzenCard>
+@code {
+    [Parameter]
+    public int TenantId { get; set; }
+
+    private ServiceGroupOverviewCollection _tenant;
+
+
+    void OnExpand(TreeExpandEventArgs args)
+    {
+        var group = args.Value as BasicServiceGroupDto;
+
+        if (group != null)
+        {
+            args.Children.Data = group.Microservices;
+            args.Children.TextProperty = "Name";
+            args.Children.HasChildren = (_) => false;
+        }
+    }
+
+    bool ShouldExpand(object data)
+    {
+        var group = data as BasicServiceGroupDto;
+
+        return group?.Microservices?.Count > 0;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TenantId > 0) {
+
+            var response = await ServiceGroupService.GetServiceGroupsForTenantAsync(TenantId);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _tenant = response.Content;
+            }
+        }
+    }
+}

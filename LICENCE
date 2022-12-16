@@ -1,0 +1,14 @@
+# Mockdoor Licence
+This is a draft WIP/place holder for the licence agreement for Mockdoor. Currently Mockdoor code and binaries can be used for free for testing purposes. 
+
+After an initial free period during the Alpha and Beta stages, the intention is to open source Mockdoor with a tiered pricing model starting from free for small usage (based on number of microservices and tenants etc) and increasing in cost.
+The pricing and thresholds for these tiers will be decided before full release. 
+
+Once open source please report any bugs found and Pull requests for bug fixes and improvements are welcome but would not grant any additional rights to the software unless via an explicit agreement in recognition of the significance of the contribution.
+
+Donations are welcome and if suffient donations are provided Mockdoor may remain free. 
+
+Mockdoor uses the following open source Libraries:
+- Riok.Mapperly under the Apache License 2.0: see [here](https://github.com/riok/mapperly/blob/main/LICENSE)
+- Radzen Components Library under MIT licence see [here] (https://github.com/radzenhq/radzen-blazor/blob/master/LICENSE)
+

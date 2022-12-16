@@ -1,0 +1,187 @@
+﻿@page "/service-group/viewdetails/{Id:int}"
+
+@inherits BasePageComponent
+
+@inject ServiceGroupService ServiceGroupService
+
+<PageTitle>View Service Group Details</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="View Service Group Details"/>
+    </RadzenBreadCrumb>
+</div>
+
+@if (_serviceGroup == null)
+{
+    <RadzenPanel class="m-2 shadow">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel class="m-2 shadow">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left" class="d-flex">
+                <h2 class="flex-grow-1 w-100">Service Group Details:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">
+            <RadzenSplitter Orientation="Orientation.Horizontal">
+                <RadzenSplitterPane>
+                    <RadzenCard class="h-100">
+                        <div class="row mb-3">
+                            <div class="col-md-3 align-right">
+                                <RadzenLabel Text="Parent Tenant:" />
+                            </div>
+                            <div class="col">
+                                <p>@_serviceGroup.TenantName</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-3 align-right">
+                                <RadzenLabel Text="Name" />
+                            </div>
+                            <div class="col">
+                                <p>@_serviceGroup.Name</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <RadzenLabel Text="Group Path" />
+                            </div>
+                            <div class="col">
+                                <p>@_serviceGroup.Path</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <RadzenLabel Text="Default Health Check URL" />
+                            </div>
+
+                            <div class="col">
+                                <div class="d-flex">
+                                    @if (!string.IsNullOrWhiteSpace(_serviceGroup.DefaultHealthCheckUrl))
+                                    {
+                                        <AnimatedHealthStatusIndicator TestUrl="@_serviceGroup.DefaultHealthCheckUrl" />
+                                        <p class="flex-grow-1 m-auto">@_serviceGroup.DefaultHealthCheckUrl</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="flex-grow-1 m-auto">[Not Set]</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-3" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Simulation Time" />
+                            </div>
+          
+                            <div class="col">
+                                @if (_serviceGroup.SimulateTime == null)
+                                {
+                                    <p>[Not Set]</p>
+                                }
+                                else
+                                {
+                                    <p>@_serviceGroup.SimulateTime.Value.ToString("dd/MM/yy HH:mm:ss.ffff")</p>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <RadzenLabel Text="Enabled" />
+                            </div>
+
+                            <div class="col">
+                                <ReadOnlyToggleState State="@_serviceGroup.Enabled" TrueText="True" FalseText="False" />
+                            </div>
+                        </div>
+                        <div class="d-flex">
+                            <div class="flex-grow-1"></div>                            
+                            <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Edit" Click="@(() => NavigationManager.NavigateTo($"service-group/edit/{Id}"))" />
+                            <RadzenButton ButtonType="ButtonType.Submit" Text="Back" Click="@(() => GoBackPage(true))" />
+                            <div class="flex-grow-1"></div>
+                        </div>
+                    </RadzenCard>
+                </RadzenSplitterPane>
+                        
+                <RadzenSplitterPane>
+                    @if (_serviceGroup.Microservices?.Count > 0)
+                    {
+                        <div class="col">
+                            <RadzenCard>
+                                <div class="row">                                
+                                    <h2 class="col">Microservices:</h2>
+                                    <div class="my-1">
+                                        <RadzenButton Click="@(() => NavigationManager.NavigateTo($"microservice/create/{_serviceGroup.TenantId}/{Id}"))"
+                                                      ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small">New Microservice</RadzenButton>
+                                    </div>
+                                </div>
+                            
+                                <div class="row">
+                                    <div class="col">
+                                        <div style="height: 365px;">
+                                            <SimpleEntityList Items="@_serviceGroup.Microservices" ValueProperty="ID" TextProperty="Name">
+                                                <StartListItem Context="microserviceContext">
+                                                    @if (microserviceContext.Enabled)
+                                                    {
+                                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled" />
+                                                    }
+                                                </StartListItem>
+
+                                                <ListItem Context="microserviceContext">
+                                                    <span class="p-2 flex-grow-1">@(HelperMethodsExtensions.SafePrint(microserviceContext.Name, microserviceContext.TargetUrl))</span>
+                                                </ListItem>
+
+                                                <EndListItem Context="microserviceContext">
+                                                    <RadzenButton Click="@(() => NavigationManager.NavigateTo($"microservice/edit/{_serviceGroup.TenantId}/{microserviceContext.Id}"))"
+                                                                  ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small" />
+                                                </EndListItem>
+                                            </SimpleEntityList>
+                                        </div>
+                                    </div>
+                                </div>
+                            
+                            </RadzenCard>
+                        </div>    
+                    }
+                </RadzenSplitterPane>
+            </RadzenSplitter>
+        </div>
+    </ChildContent>
+</RadzenPanel>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    BasicServiceGroupDto _serviceGroup;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await ServiceGroupService.GetServiceGroupAsync(Id);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            _serviceGroup = response.Content;
+        }
+    }
+}

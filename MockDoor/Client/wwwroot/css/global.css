@@ -1,0 +1,10 @@
+﻿
+.rz-dialog-content {
+    flex-grow: 1 !important;
+    flex-shrink: 0 !important;
+}
+
+.list-span-fix div ul li span {
+    height:100%;
+    width:100%;
+}

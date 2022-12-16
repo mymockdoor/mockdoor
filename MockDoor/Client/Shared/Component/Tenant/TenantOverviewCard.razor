@@ -1,0 +1,120 @@
+﻿@using System.Globalization
+@inject NavigationManager NavigationManager
+@inject TooltipService TooltipService
+
+<RadzenCard Style="width:800px; max-height: 450px;">
+    <div class="row">
+        <div class="col-md-3">
+            <div>Name:</div>
+            <b>@Tenant.Name</b>
+        </div>
+
+        <div class="col-md-3">
+            <div>Path:</div>
+            <b>@Tenant.Path</b>
+        </div>
+
+
+        <div class="col-md-4">
+            <div>Simulate Time:</div>
+            <b>@(Tenant.SimulateTime != null ? Tenant.SimulateTime.Value.ToString(CultureInfo.InvariantCulture) : "[Not set]")</b>
+        </div>
+
+        <div class="col-md-2 text-right">
+            <RadzenButton Click="@(() => NavigationManager.NavigateTo($"tenant/edit/{Tenant.Id}"))" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="mode_edit">Edit Tenant</RadzenButton>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <RadzenCard class="border">
+                <div class="d-flex mb-1">
+                    <p class="my-auto">Service groups:</p>
+                    <div class="flex-grow-1">
+                        <div class="d-flex flex-row-reverse">
+                            <div class="ml-2 mb-1">
+                                <RadzenButton Click="@(() => NavigationManager.NavigateTo($"service-group/create/{Tenant.Id}"))" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="add">Add</RadzenButton>
+                            </div>
+
+                            <div class="mb-1">
+                                <RadzenButton Click="@(() => NavigationManager.NavigateTo($"service-groups-overview/{Tenant.Id}"))" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="add">Manage</RadzenButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @if (Tenant.RegisteredServiceGroups?.Count > 0)
+                {
+                    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" FilterMode="FilterMode.Advanced" AllowPaging="true" PageSize="4"
+                                AllowSorting="true" Data="@Tenant.RegisteredServiceGroups" TItem="BaseServiceGroupDto" LogicalFilterOperator="LogicalFilterOperator.Or">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="Enabled" Width="30px" Title="Enabled">
+                                <Template Context="serviceGroup">
+                                    <div class="m-auto">
+                                        <RadzenCheckBox class="m-auto" Value="serviceGroup.Enabled" Disabled="true" />
+                                    </div>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="Name" Title="Name" Width="100px">
+                                <Template Context="serviceGroup">
+                                    <RadzenLink Path="@($"service-group/viewdetails/{serviceGroup.Id}")" MouseEnter="@((args) =>  TooltipService.Open(args, serviceGroup.Name, null))" Text="@serviceGroup.Name" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="Path" Title="Service Path" Width="70px">
+                                <Template Context="serviceGroup">
+                                    <RadzenLabel MouseEnter="@((args) =>  TooltipService.Open(args, serviceGroup.Path, null))" Text="@serviceGroup.Path" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="HealthCheckUrl" Title="Health Check Url" Width="100px">
+                                <Template Context="serviceGroup">
+                                    <RadzenLabel MouseEnter="@((args) =>  TooltipService.Open(args, serviceGroup.DefaultHealthCheckUrl, null))" Text="@serviceGroup.DefaultHealthCheckUrl" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="HealthCheckUrl" Title="Healthy?" Width="50px" Sortable="false" Filterable="false">
+                                <Template Context="serviceGroup">
+                                    @if (string.IsNullOrWhiteSpace(serviceGroup.DefaultHealthCheckUrl))
+                                    {
+                                        <AnimatedHealthStatusIndicator HealthStatus="@TestUrlResult.Unknown" />
+                                    }
+                                    else
+                                    {
+                                        <AnimatedHealthStatusIndicator TestUrl="@serviceGroup.DefaultHealthCheckUrl" />
+                                    }
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="BaseServiceGroupDto" Width="35px" Sortable="false" Filterable="false">
+                                <Template Context="serviceGroup">
+                                    <div class="m-auto">
+                                        <RadzenButton Click="@(() => NavigationManager.NavigateTo($"service-group/edit/{serviceGroup.Id}"))" ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small" />
+                                    </div>
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                }
+                else
+                {
+                    <RadzenCard class="h-100 w-100">
+                        <div class="row h-100">
+                            <div class="my-auto text-center w-100">
+                                <h4>
+                                    No service groups Found.
+                                </h4>
+                            </div>
+                        </div>
+                    </RadzenCard>
+                }
+            </RadzenCard>
+        </div>
+    </div>
+</RadzenCard>
+
+@code {
+
+    [Parameter]
+    public BaseTenantDto Tenant { get; set; }
+}

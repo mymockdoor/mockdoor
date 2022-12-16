@@ -1,0 +1,48 @@
+﻿@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+
+<div class="d-flex rz-menu">
+    <RadzenMenu class="flex-grow-1">
+        <RadzenMenuItem Text="Home" Path="home" Icon="home" />
+        <RadzenMenuItem Text="Search" Icon="search">
+            <RadzenMenuItem Text="Search Tenants" Path="search-tenants" Icon="person_search" />
+            <RadzenMenuItem Text="Search Groups" Path="search-groups" Icon="saved_search" />
+            <RadzenMenuItem Text="Search Microservices" Path="search-microservices" Icon="manage_search" />
+        </RadzenMenuItem>
+        <RadzenMenuItem Text="Tools" Icon="handyman">
+            <RadzenMenuItem Text="Setup Wizard" Path="setup-wizard" Icon="settings_suggest" />
+            <RadzenMenuItem Text="Mock Tester" Path="mock-testing" Icon="line_weight" />
+            <RadzenMenuItem Text="Database Import/Export" Path="import-export-tool" Icon="inventory" />
+        </RadzenMenuItem>
+        <RadzenMenuItem Text="Live requests feed" Path="livefeed" Icon="feed" />
+        <RadzenMenuItem Text="Health Overview" Path="health-overview" Icon="check_circle" />
+    </RadzenMenu>
+    
+    <h2 class="m-auto rz-color-base-300" style="position: absolute; left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%);">MockDoor @SharedConstants.MockdoorVersion</h2>
+    
+    <a href="#" class="rz-navigation-item-link" style="pointer-events: none"><span class="rz-navigation-item-text my-auto">Theme:</span></a>
+    
+    <RadzenDropDown class="my-1 mx-2" Data=@_themes Value="@_theme" TValue="string" Change="@(async arg => await ChangeAsync((string)arg))" />
+</div>
+
+@code {
+    string[] _themes = new [] { "default", "dark", "software", "humanistic", "standard", "material" };
+
+    string _theme = "material";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentTheme = await LocalStorage.GetItemAsStringAsync("theme");
+
+        if(currentTheme != null && _themes.Contains(currentTheme)) {
+            _theme = currentTheme;
+        }
+    }
+
+    async Task ChangeAsync(string newTheme)
+    {
+        _theme = newTheme;
+        await LocalStorage.SetItemAsStringAsync("theme", _theme);
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+}

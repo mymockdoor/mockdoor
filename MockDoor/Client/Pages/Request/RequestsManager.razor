@@ -1,0 +1,206 @@
+﻿@page "/requests-manager/{TenantId:int}/{MicroserviceId:int}"
+
+@using MockDoor.Shared.Models.ServiceRequest
+@inherits BasePageComponent
+
+@inject RequestService RequestService
+@inject DialogService DialogService 
+@inject ILocalStorageService LocalStorage
+
+<PageTitle>Request Manager</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Path="@($"service-groups-overview/{TenantId}")" Text="Service Group Overview"/>
+        <RadzenBreadCrumbItem Icon="toc" Text="Requests Manager" />
+    </RadzenBreadCrumb>
+</div>
+
+<div class="w-100">
+    
+
+    @if (_serviceRequests == null)
+    {
+        <div class="row">
+            <RadzenCard class="w-100">
+                <ShowLoading />
+            </RadzenCard>
+        </div>                  
+    }
+    else
+    {
+        <div class="row">
+            <RadzenCard class="w-100">
+                <h2>Requests</h2>
+                <RadzenSelectBar @bind-Value="@_density" TextProperty="Text" ValueProperty="Value" 
+                                 Data="@(Enum.GetValues(typeof(Density)).Cast<Density>().Select(t => new { Text = $"{t}", Value = t }))" Size="ButtonSize.Small" />
+                @if(!string.IsNullOrWhiteSpace(_errorMessage))
+                {
+                    <GeneralError Message="@_errorMessage" />
+                }
+
+                <RadzenDataGrid @ref="RequestGrid"
+                                AllowFiltering="true"
+                                AllowPaging="true"
+                                AllowColumnResize="true"
+                                PageSize="18" 
+                                AllowSorting="true" 
+                                GridLines="DataGridGridLines.Both"
+                                RowRender="@RowRender" 
+                                AllowVirtualization="true" 
+                                Density="@_density"
+                                Data="@_serviceRequests"  
+                                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
+                                TItem="ServiceRequestDto" 
+                                SelectionMode="DataGridSelectionMode.Single"
+                                @bind-Value=SelectedServiceRequest>            
+                    <EmptyTemplate>               
+                        <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">No records to display.</p>
+                    </EmptyTemplate>
+                    <Columns>
+                        <RadzenDataGridColumn Width="100px" TItem="ServiceRequestDto" Property="Id" Title="Request Id" />
+                        <RadzenDataGridColumn Width="100px" TItem="ServiceRequestDto" Property="MicroserviceId" Title="Microservice Id" />
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="FromUrl" Title="FromUrl">
+                            <Template Context="request">
+                                @request.FromUrl
+                                @if (request.QueryParameters?.Count > 0)
+                                {
+                                    <span>?@string.Join("&", request.QueryParameters.Select(qp => $"{qp.Name}={qp.Value}"))</span>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="FromBody" Title="From Body" > 
+                            <Template Context="request">
+                                @if (!string.IsNullOrWhiteSpace(request.FromBody)) 
+                                {
+                                    <pre style="max-height: 400px; width: 100%;">@request.FromBody.MakePretty()</pre>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="ExactUrlMatch" Title="Exact Url Match" />
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="ExpectAuthHeader" Title="Expect Auth Header" />
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="SimulateTime" Title="Simulation Time" />
+
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="RestType" Title="Rest Type">
+                            <Template Context="request">
+                                @(request.RestType.ToString())
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="MockBehaviour" Title="Mock Behaviour">
+                            <Template Context="request">
+                                @(request.MockBehaviour.ToString())
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="CreatedUtc" Title="Created">
+                            <Template Context="request">
+                                @request.CreatedUtc.ToString("dd/MM/yy HH:mm:ss.ffff")
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Context="request" Filterable="false" Sortable="false" Title="Edit/Delete/Test" TextAlign="TextAlign.Center" Width="110px">
+                            <Template Context="request">
+                                <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(() => NavigationManager.NavigateTo($"request/edit/{TenantId}/{request.Id}?returnUrl=requests-manager/{TenantId}/{MicroserviceId}"))" />
+                                <RadzenButton Icon="delete" Size="ButtonSize.Small" Click="@(_ => ConfirmDeleteRow(request))"></RadzenButton>
+                                <RadzenButton Icon="swap_horiz" Size="ButtonSize.Small" Click="@(_ => GoToMock(request))" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </RadzenCard>
+        </div>
+    }
+    <div class="row py-2"></div>
+
+    <div class="row">       
+        <RadzenCard class="w-100">
+            @if (_selectedMockResponses?.Count() > 0)
+            {
+                <EditableResponseDataGrid RequestId=@(_selectedServiceRequest?.FirstOrDefault()?.Id??0) DataSource="@(_selectedMockResponses)" Density="_density" />
+            }
+            else{
+                <h2>No request responses found</h2>
+            }
+        </RadzenCard>
+    </div>
+</div>
+    
+@code {
+    [Parameter]
+    public int MicroserviceId { get; set; }
+
+    [Parameter]
+    public int TenantId { get; set; }
+
+    RadzenDataGrid<ServiceRequestDto> RequestGrid { get; set; }
+
+    List<ServiceRequestDto> _serviceRequests;
+
+    IList<ServiceRequestDto> _selectedServiceRequest;
+
+    IList<ServiceRequestDto> SelectedServiceRequest
+    {
+        get => _selectedServiceRequest;
+        set
+        {
+            if (!_selectedServiceRequest?.Equals(value) ?? value != null)
+            {
+                _selectedServiceRequest = value; 
+                _selectedMockResponses = _selectedServiceRequest.First().MockResponses.ToList();
+                StateHasChanged();
+            }
+        }
+    }
+
+    List<MockResponseDto> _selectedMockResponses = new List<MockResponseDto>();
+
+    string _errorMessage;
+    
+    Density _density = Density.Compact;
+
+    async Task ConfirmDeleteRow(ServiceRequestDto request)
+    {
+        var confirmed = await DialogService.Confirm("Are you sure?", "Confirm Delete?", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+
+        if (confirmed != null && confirmed.Value)
+        {
+
+            var response = await RequestService.DeleteRequestAsync(request.Id);
+
+            if (response)
+            {
+                _errorMessage = null;
+                _serviceRequests.Remove(request);
+                _selectedServiceRequest?.Clear();
+                _selectedMockResponses?.Clear();
+
+                await RequestGrid.Reload();
+            }
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var result = await RequestService.GetRequestsAsync(MicroserviceId);
+
+        if (result.IsSuccessStatusCode)
+        {
+            _serviceRequests = result.Content;
+        }
+    }
+
+    void RowRender(RowRenderEventArgs<ServiceRequestDto> args)
+    {
+        args.Expandable = args.Data.MockResponses?.Count > 0;
+    }
+
+    private async Task GoToMock(ServiceRequestDto request)
+    {
+        await LocalStorage.SetItemAsync(UiConstants.MockTestingPopulateKey, request);
+        NavigationManager.NavigateTo($"mock-testing?microserviceId={request.MicroserviceId}");
+    }
+
+}

@@ -1,0 +1,64 @@
+﻿@inject DialogService DialogService
+@inject ServiceGroupService ServiceGroupService
+
+<RadzenCard class="d-flex flex-column">
+    @if (ServiceGroupId == 0)
+    {
+        <GeneralError Message="Error no service id provided when attempting to delete. Please contact an administrator" />
+    }
+    else if (_serviceGroup == null)
+    {
+        <div class="flex-grow-1">loading...</div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Are you Sure you want to delete "@_serviceGroup.Name"?</h2>
+            </div>
+        </div>
+
+        @if (_serviceGroup.Microservices != null && _serviceGroup.Microservices.Count > 0)
+        {
+
+            <div class="row flex-grow-1">
+                <div class="col-md-12">
+                    <h3 style="color: orange">Warning: Deleting this service group will also delete the following Microservices and any related mock responses for them</h3>
+                    <h4>The following Microservices will be deleted:</h4>
+                    <ul>
+                        @foreach (var microservice in _serviceGroup.Microservices)
+                        {
+                            <li>@microservice.Name</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <RadzenButton Click="@((_) => DialogService.Close(true))" Text="OK" Style="margin-bottom: 10px; width: 150px" />
+                <RadzenButton Click="@((_) => DialogService.Close(false))" ButtonStyle="ButtonStyle.Secondary" Text="Cancel" Style="margin-bottom: 10px; width: 150px" />
+            </div>
+        </div>
+    }
+</RadzenCard>
+@code {
+    [Parameter]
+    public int ServiceGroupId { get; set; }
+
+    private BasicServiceGroupDto _serviceGroup;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ServiceGroupId > 0) {
+
+            var response = await ServiceGroupService.GetServiceGroupAsync(ServiceGroupId);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _serviceGroup = response.Content;
+            }
+        }
+    }
+}

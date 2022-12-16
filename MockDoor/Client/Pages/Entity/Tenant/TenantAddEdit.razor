@@ -1,0 +1,237 @@
+﻿@page "/tenant/create"
+@page "/tenant/edit/{Id:int}"
+
+@inherits BasePageComponent
+
+@inject TenantService TenantService
+@inject DialogService DialogService
+
+@implements IDisposable
+
+<PageTitle>@(IsEditMode ? "Edit" : "Create") Tenant</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Icon="mode_edit" Text="@(IsEditMode ? "Edit Tenant" : "Create Tenant")"/>
+    </RadzenBreadCrumb>
+</div>
+
+@if (_tenant == null)
+{
+    <RadzenPanel class="m-2 shadow">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel class="m-2 shadow">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>@(IsEditMode ? "Edit" : "Create" ) Tenant:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">
+                <RadzenSplitter Orientation="Orientation.Horizontal">
+                    <RadzenSplitterPane>
+                           <RadzenTemplateForm TItem="BaseTenantDto" Data=@_tenant Submit=@SaveAsync @onkeypress:preventDefault>
+                               <RadzenFieldset Text="Tenant information">
+                                   <div class="row mb-3">
+                                       <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                           <RadzenLabel Text="Name*"/>
+                                       </div>
+                        
+                                       <div class="col">
+                                           <ValidatedTextInput PropertyName="Name"
+                                                               @bind-Value="@_tenant.Name"
+                                                               @bind-BadRequestResult="_errorsOnSave"
+                                                               ParentObjectContext="@_tenant"
+                                                               EnableClientSideValidation="true"/>
+                                       </div>
+                                   </div>
+                                   <div class="row mb-3">
+                                       <div class="col-md-3" style="line-height: 2.2rem;">
+                                           <RadzenLabel Text="Path*"/>
+                                       </div>
+                        
+                                       <div class="col">
+                                           <ValidatedTextInput PropertyName="Path"
+                                                               @bind-Value="@_tenant.Path"
+                                                               @bind-BadRequestResult="_errorsOnSave"
+                                                               ParentObjectContext="@_tenant"
+                                                               EnableClientSideValidation="true"/>
+                                       </div>
+                                   </div>
+                        
+                                   @if (IsEditMode)
+                                   {
+                                       <div class="row" style="margin-bottom: 48px;">
+                                           <div class="col-md-3" style="line-height: 2.2rem;">
+                                               <RadzenLabel Text="Simulation Time"/>
+                                           </div>
+                        
+                                           <div class="col">
+                                               <TimeTravelSelector Scope="TimeTravelScope.Tenant" Id="@_tenant.Id" ShowSubmit="false" CurrentDateTime="@_tenant.SimulateTime" OnChanged="@(arg => _tenant.SimulateTime = arg)"/>
+                                           </div>
+                                       </div>
+                                   }
+                        
+                                   <div class="row">
+                                       <div class="col">
+                                           <p>*Required field</p>
+                                       </div>
+                                   </div>
+                        
+                                   <div class="d-flex">
+                                       <div class="flex-grow-1"></div>
+                        
+                                       <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="@(IsEditMode ? "Update" : "Create")" Disabled="@(!TenantIsValid())"></RadzenButton>
+                        
+                                       @if (IsEditMode)
+                                       {
+                                           <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="View Details" Click="@(() => NavigationManager.NavigateTo($"tenant/viewdetails/{Id}"))"/>
+                                           
+                                           <RadzenButton class="mr-1" Text="Delete Tenant?" Click=@(_ => DialogService.Open<DeleteTenantDialog>($"Delete Tenant Group \"{_tenant.Name}\"?", new Dictionary<string, object>() { { "TenantId", _tenant.Id } }, new DialogOptions() { ShowClose = true, ShowTitle = true, Style = "overflow: auto; resize: both;" })) Disabled="@_deleting"/>
+                                       }
+                                       <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))"/>
+                                       <div class="flex-grow-1"></div>
+                                   </div>
+                            </RadzenFieldset>
+                        </RadzenTemplateForm>
+                    </RadzenSplitterPane>
+                    
+                    <RadzenSplitterPane>
+                        <RadzenFieldset Text="Service Groups:" Style="height: 100%;">
+                            <div class="h-100">
+                                <SimpleEntityList Items="@_tenant.RegisteredServiceGroups" ValueProperty="ID" TextProperty="Name">
+                                    <StartListItem Context="serviceGroupContext">
+                                        @if (serviceGroupContext.Enabled)
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled"/>
+                                        }
+                                        else
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled"/>
+                                        }
+                                    </StartListItem>
+
+                                    <ListItem Context="serviceGroupContext">
+                                        <span class="p-2 flex-grow-1">@serviceGroupContext.Name.SafePrint(serviceGroupContext.Path)</span>
+                                    </ListItem>
+
+                                    <EndListItem Context="serviceGroupContext">
+                                        <RadzenButton Click="@(() => NavigationManager.NavigateTo($"service-group/edit/{serviceGroupContext.Id}"))"
+                                                      ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small"/>
+                                    </EndListItem>
+                                </SimpleEntityList>
+                            </div>
+                        </RadzenFieldset>
+                    </RadzenSplitterPane>
+                </RadzenSplitter>
+            </div>
+        </ChildContent>
+    </RadzenPanel>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    bool IsEditMode => Id > 0;
+
+    BaseTenantDto _tenant;
+
+    bool _deleting;
+
+    BadRequestResultDto _errorsOnSave;
+
+    protected override void OnInitialized()
+    {
+        DialogService.OnClose += OnCloseDeleteDialog;
+        base.OnInitialized();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEditMode)
+        {
+            var response = await TenantService.GetTenantAsync(Id);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _tenant = response.Content;
+            }
+        }
+        else
+        {
+            _tenant = new BaseTenantDto();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorsOnSave = null;
+        if (IsEditMode)
+        {
+            var response = await TenantService.UpdateTenantAsync(Id, _tenant);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _errorsOnSave = response.BadRequestResult;
+                return;
+            }
+        }
+        else
+        {
+            var response = await TenantService.CreateTenantAsync(_tenant);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _errorsOnSave = response.BadRequestResult;
+                return;
+            }
+        }
+
+        GoBackPage(true);
+    }
+
+    void OnCloseDeleteDialog(dynamic result)
+    {
+        bool deleteConfirmed = Convert.ToBoolean(result);
+
+        if (deleteConfirmed)
+        {
+            _deleting = true;
+            StateHasChanged();
+
+            Task.Run(async () =>
+            {
+                var deleted = await TenantService.DeleteTenantAsync(Id);
+
+                if (deleted)
+                    GoBackPage(true);
+                
+                _deleting = false;
+                StateHasChanged();
+            });
+        }
+    }
+
+    void IDisposable.Dispose()
+    {
+        DialogService.OnClose -= OnCloseDeleteDialog;
+    }
+
+    private bool TenantIsValid()
+    {
+        return _tenant != null && 
+               !string.IsNullOrWhiteSpace(_tenant.Name) && 
+               !string.IsNullOrWhiteSpace(_tenant.Path) && 
+               _tenant.IsValid();
+    }
+}

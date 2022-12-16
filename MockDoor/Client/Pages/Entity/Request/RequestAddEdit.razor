@@ -1,0 +1,317 @@
+﻿@page "/request/create/{TenantId:int}/{MicroserviceId:int}"
+@page "/request/edit/{TenantId:int}/{Id:int}"
+
+@using MockDoor.Shared.Models.ServiceRequest
+@inherits BasePageComponent
+
+<PageTitle>@(IsEditMode ? "Edit" : "Create") Service Request</PageTitle>
+
+@if (_request == null)
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>@(IsEditMode ? "Edit" : "Create" ) Service Request:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">
+            <div class="col">
+            <RadzenCard>
+                <RadzenTemplateForm TItem="ServiceRequestDto" Data=@_request Submit=@SaveAsync >
+                    <RadzenFieldset Text="Request information">
+                        <div class="row" style="margin-bottom: 48px">
+                            <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Endpoint (From Url)"/>
+                            </div>
+                            <div class="col">
+                                <ValidatedTextInput PropertyName="FromUrl"
+                                                    Value="@_request.FromUrl"
+                                                    ValueChanged="@(args => { _request.FromUrl = args; _fromUrlDirty = true; })"
+                                                    @bind-BadRequestResult="_errorsOnSave"
+                                                    ParentObjectContext="@_request"
+                                                    EnableClientSideValidation="true"/>
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 48px">
+                            <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Query Parameters"/>
+                            </div>
+                            <div class="col">
+                                <div class="my-auto d-flex  align-self-center">
+                                     <RadzenLabel Text="Name" class="my-auto"/>
+                                                                            
+                                     <ValidatedTextInput PropertyName="Name" @bind-Value="@_newQueryParam.Name" 
+                                                                             @bind-BadRequestResult="_errorsOnSave" 
+                                                                             ParentObjectContext="@_newQueryParam"
+                                                                             EnableClientSideValidation="true" />
+
+                                    <RadzenLabel Text="Value" class="ml-1 my-auto"/>
+                                    
+                                    
+                                     <ValidatedTextInput PropertyName="Value" @bind-Value="@_newQueryParam.Value" 
+                                                                             @bind-BadRequestResult="_errorsOnSave" 
+                                                                             ParentObjectContext="@_newQueryParam"
+                                                                             EnableClientSideValidation="true" />
+                                </div>
+                                <div>
+                                    <RadzenDataGrid @ref="_queryParamGrid" class="mt-1"
+                                                    Data="@_request.QueryParameters"
+                                                    TItem="QueryParameterDto"
+                                                    Density="Density.Compact"
+                                                    AllowPaging="true" AllowSorting="true">
+                                        <Columns>
+                                            <RadzenDataGridColumn TItem="QueryParameterDto" Property="Name" Title="Name"/>
+                                            <RadzenDataGridColumn TItem="QueryParameterDto" Property="Value" Title="Value"/>
+                                            <RadzenDataGridColumn TItem="QueryParameterDto" Property="OrderIndex" Title="Order"/>
+                                            <RadzenDataGridColumn TItem="QueryParameterDto" Context="header" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Title="Remove?" Width="75px">
+                                                <Template Context="queryParam">
+                                                    <RadzenButton Click="@(_ => DeleteQueryParam(queryParam))" Size="ButtonSize.ExtraSmall" Icon="delete"/>
+                                                </Template>
+                                            </RadzenDataGridColumn>
+                                        </Columns>
+                                    </RadzenDataGrid>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-bottom: 48px">
+                            <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Request Headers"/>
+                            </div>
+                            <div class="col">
+                                <div class="my-auto d-flex  align-self-center">
+                                    <RadzenLabel Text="Name" class="my-auto"/>
+                                                                            
+                                     <ValidatedTextInput PropertyName="Name" @bind-Value="@_newHeader.Name" 
+                                                                             @bind-BadRequestResult="_errorsOnSave" 
+                                                                             ParentObjectContext="@_newHeader"
+                                                                             EnableClientSideValidation="true" />
+
+                                    <RadzenLabel Text="Value" class="ml-1 my-auto"/>
+                                    
+                                     <ValidatedTextInput PropertyName="Value" @bind-Value="@_newHeader.Value" 
+                                                                             @bind-BadRequestResult="_errorsOnSave" 
+                                                                             ParentObjectContext="@_newHeader"
+                                                                             EnableClientSideValidation="true" />
+
+                                    <RadzenButton class="mx-1"
+                                                  ButtonType="ButtonType.Submit"
+                                                  Text="Add"
+                                                  Click="@AddHeader"
+                                                  Disabled="@(string.IsNullOrWhiteSpace(_newHeader.Name) || string.IsNullOrWhiteSpace(_newHeader.Value))"
+                                                  Style="width: 100px;"/>
+                                </div>
+                                <div  @ref="_headerElementReference">
+                                    <RadzenDataGrid @ref="_headerGrid" class="mt-1"
+                                                    Data="@_request.RequestHeaders"
+                                                    TItem="ServiceRequestHeaderDto"
+                                                    AllowColumnResize="true"
+                                                    Density="Density.Compact"
+                                                    AllowPaging="true" AllowSorting="true">
+                                        <Columns>
+                                            <RadzenDataGridColumn TItem="ServiceRequestHeaderDto" Property="Name" Title="Name"/>
+                                            <RadzenDataGridColumn TItem="ServiceRequestHeaderDto" Property="Value" Title="Value (right click to copy)">
+                                                <Template Context="header">
+                                                    <div @oncontextmenu=@(arg => ShowCopyHeaderContextMenu(arg, string.Join(';', header.Value))) @oncontextmenu:preventDefault="true">
+                                                        @string.Join(';', header.Value)
+                                                    </div>
+                                                </Template>
+                                            </RadzenDataGridColumn>
+                                            <RadzenDataGridColumn TItem="ServiceRequestHeaderDto" Context="header" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Title="Remove?" Width="75px">
+                                                <Template Context="header">
+                                                    <RadzenButton Click="@(_ => DeleteHeader(header))" Size="ButtonSize.ExtraSmall" Icon="delete"/>
+                                                </Template>
+                                            </RadzenDataGridColumn>
+                                        </Columns>
+                                    </RadzenDataGrid>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 48px">
+                            <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="From Body"/>
+                            </div>
+                            <div class="col">
+                                <RadzenTextArea class="w-100" Style="min-height: 450px;" Name="FromBody" @bind-Value=@_request.FromBody @oninput="@(args => { _request.FromBody = args?.Value?.ToString(); _fromBodyDirty = true; })" />
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 48px;">
+                            <div class="col-md-3" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Exact Url Match"/>
+                            </div>
+
+                            <div class="col">
+                                <RadzenSwitch @bind-Value=@_request.ExactUrlMatch Change="@((_) => { _exactUrlMatchDirty = true; })" Style="margin-bottom: 20px"/>
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 48px;">
+                            <div class="col-md-3" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Expect Authorisation Header"/>
+                            </div>
+
+                            <div class="col">
+                                <RadzenSwitch @bind-Value=@_request.ExpectAuthHeader Change="@((_) => { _expectAuthHeaderDirty = true; })" Style="margin-bottom: 20px"/>
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 48px;">
+                            <div class="col-md-3" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Rest Type"/>
+                            </div>
+
+                            <div class="col">
+                                <RadzenRadioButtonList @bind-Value=@_request.RestType TValue="RestType" Style="margin-bottom: 20px" Change=@((args) => { _request.RestType = args; _restTypeDirty = true; })>
+                                    <Items>
+                                        <RadzenRadioButtonListItem Text="GET" Value="RestType.GET"/>
+                                        <RadzenRadioButtonListItem Text="POST" Value="RestType.POST"/>
+                                        <RadzenRadioButtonListItem Text="PUT" Value="RestType.PUT"/>
+                                        <RadzenRadioButtonListItem Text="PATCH" Value="RestType.PATCH"/>
+                                        <RadzenRadioButtonListItem Text="DELETE" Value="RestType.DELETE"/>
+                                    </Items>
+                                </RadzenRadioButtonList>
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 48px;">
+                            <div class="col-md-3" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Mock Behaviour"/>
+                            </div>
+
+                            <div class="col">
+                                <RadzenRadioButtonList @bind-Value=@_request.MockBehaviour TValue="MockBehaviour" Style="margin-bottom: 20px" Change=@((args) => { _request.MockBehaviour = args; _mockBehaviourDirty = true; })>
+                                    <Items>
+                                        <RadzenRadioButtonListItem Text="Auto Mock With Proxy" Value="MockBehaviour.AutoMockWithProxy"/>
+                                        <RadzenRadioButtonListItem Text="Manually Mock With Proxy" Value="MockBehaviour.ManualMockingWithProxy"/>
+                                        <RadzenRadioButtonListItem Text="Mock Only" Value="MockBehaviour.MockOnly"/>
+                                        <RadzenRadioButtonListItem Text="Proxy Only" Value="MockBehaviour.ProxyOnly"/>
+                                    </Items>
+                                </RadzenRadioButtonList>
+                            </div>
+                        </div>
+
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Enabled"/>
+                        </div>
+
+                        <div class="col">
+                            <RadzenSwitch @bind-Value=@_request.Enabled Change="@((_) => { _enabledDirty = true; })" Style="margin-bottom: 20px"/>
+                        </div>
+                    </div>
+                    
+                        @if (IsEditMode)
+                        {
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Simulation Time"/>
+                                </div>
+
+                                <div class="col">
+                                    <TimeTravelSelector Scope="TimeTravelScope.Request" Id="@_request.Id" ShowSubmit="false" CurrentDateTime="@_request.SimulateTime" OnChanged="@(arg => {_request.SimulateTime = arg; _simulateTimeDirty = true;})"/>
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Created Utc"/>
+                                </div>
+                                <div class="col">
+                                    <DetailedDatePicker ShowTime="true"
+                                                        ShowSeconds="true"
+                                                        ShowMilliseconds="true"
+                                                        Value="@_request.CreatedUtc"
+                                                        ValueChanged="@(arg => { _request.CreatedUtc = arg; _createdDirty = true; })"
+                                                        DateFormat="dd/MM/yy HH:mm:ss.fff"
+                                                        CssClass="w-100"/>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="d-flex">
+                            <div class="flex-grow-1"></div>
+                            <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="@(IsEditMode ? "Update" : "Create")" Disabled="@(!RequestIsValid())"></RadzenButton>
+                            @if (IsEditMode)
+                            {
+                                <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="View Details" Click="@(() => NavigationManager.NavigateTo($"request/viewdetails/{TenantId}/{Id}"))" />
+                                
+                                <RadzenButton Iclass="mx-1" ButtonType="ButtonType.Submit" Text="Add Responses" Click="@(() => NavigationManager.NavigateTo($"response/create/{Id}?returnUrl=request/edit/{TenantId}/{Id}"))"/>
+
+                                <RadzenButton class="mx-1" Text="Delete Request?" Disabled="@_deleting" Click="@DeleteRequestDialog" />
+                            }
+                            <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))"/>
+                            <div class="flex-grow-1"></div>
+                        </div>
+                    </RadzenFieldset>
+                </RadzenTemplateForm>
+            </RadzenCard>
+            </div>
+            </div>
+            
+            @if (IsEditMode && _request.MockResponses?.Count > 0)
+            {
+                <div class="row mt-4">
+                    <div class="col">
+                        <RadzenCard>
+                                    @if (_request.MockResponses?.Count > 0)
+                                    {
+                                        <h2>Mock Responses:</h2>
+                                        <div style="height: 365px;">
+                                            <SimpleEntityList Items="@_request.MockResponses" ValueProperty="ID">
+                                                <StartListItem Context="mockResponseContext">
+                                                    @if (mockResponseContext.Enabled)
+                                                    {
+                                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled" />
+                                                    }
+                                                </StartListItem>
+    
+                                                <ListItem Context="mockResponseContext">
+                                                    <span class="p-2 flex-grow-1">@mockResponseContext.Description.SafePrint(mockResponseContext.Code.ToString())</span>
+                                                </ListItem>
+    
+                                                <EndListItem Context="mockResponseContext">
+                                                    <div class="d-flex">
+                                                        <RadzenButton class="mr-1" Click="@(() => NavigationManager.NavigateTo($"response/viewdetails/{_request.Id}/{mockResponseContext.Id}"))"
+                                                                      ButtonStyle="ButtonStyle.Primary" Icon="preview" Size="ButtonSize.Small"/>
+                                                        
+                                                        <RadzenButton Click="@(() => NavigationManager.NavigateTo($"response/edit/{_request.Id}/{mockResponseContext.Id}"))"
+                                                                      ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small"/>
+                                                    </div>
+                                                </EndListItem>
+                                            </SimpleEntityList>
+                                        </div>
+                                    }
+                        </RadzenCard>
+                    </div>
+                </div>
+            }
+        </ChildContent>
+    </RadzenPanel>
+}
+
+@code
+{
+    void ShowCopyHeaderContextMenu(MouseEventArgs args, string value) => ContextMenuService.Open(args, _ =>
+        @<RadzenMenu Click="@(() => OnCopyHeaderValueAsync(value))">
+            <RadzenMenuItem Text="Copy Header Value" />
+        </RadzenMenu>);
+}

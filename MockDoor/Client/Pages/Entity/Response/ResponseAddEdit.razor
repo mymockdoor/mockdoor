@@ -1,0 +1,418 @@
+@page "/response/create/{RequestId:int}"
+@page "/response/edit/{RequestId:int}/{Id:int}"
+
+@inherits BasePageComponent
+
+@inject ResponseService ResponseService
+@inject DialogService DialogService
+@inject IJSRuntime JsRuntime
+@inject ContextMenuService ContextMenuService
+@inject TooltipService TooltipService
+
+<PageTitle>@(IsEditMode ? "Edit" : "Create") Mock Response</PageTitle>
+
+@if (_response == null)
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel Style="margin: 15px; ">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>@(IsEditMode ? "Edit" : "Create" ) Mock Response:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">
+                <div class="col">
+                    <RadzenTemplateForm TItem="MockResponseDto" Data=@_response Submit=@SaveAsync @onkeypress:preventDefault>
+                        <RadzenFieldset Text="Mock Response information">
+
+                            <h4 style="margin-bottom: 20px;">Parent Request ID: @_response.ServiceRequestId</h4>
+
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Description" />
+                                </div>
+                                <div class="col">
+                                    <ValidatedTextInput PropertyName="Description"
+                                                        Value="@_response.Description"
+                                                        ValueChanged="@(args => { _response.Description  = args; _descriptionDirty = true; })"
+                                                        @bind-BadRequestResult="_errorsOnSave" 
+                                                        ParentObjectContext="@_response"
+                                                        EnableClientSideValidation="true" />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Body" />
+                                </div>
+                                <div class="col">
+                                    <RadzenTextArea class="w-100" Style="min-height: 450px;" Name="Body" @bind-Value=@_response.Body @oninput=@(args => { _response.Body = args?.Value?.ToString(); _bodyDirty = true; }) />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Http Status Code" />
+                                </div>
+
+                                <div class="col">
+                                    <RadzenDropDown class="w-100" @bind-Value="@_response.Code" 
+                                                    Data="HelperMethodsExtensions.GetEnumList<HttpStatusCode>()" 
+                                                    AllowFiltering="true" 
+                                                    ValueProperty="EnumValue" 
+                                                    TextProperty="EnumName"
+                                                    Change=@(() => {  _statusCodeDirty = true; }) />
+                                </div>
+                            </div>
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Mock Response Headers" />
+                                </div>
+                                <div class="col">
+                                    <div class="my-auto d-flex  align-self-center">
+                                        <RadzenLabel Text="Name" class="my-auto"/>
+                                        
+                                         <ValidatedTextInput PropertyName="Name" @bind-Value="@_newHeader.Name" 
+                                                                                 @bind-BadRequestResult="_errorsOnSave" 
+                                                                                 ParentObjectContext="@_newHeader"
+                                                                                 EnableClientSideValidation="true" />
+
+                                        <RadzenLabel Text="Value" class="ml-1 my-auto"/>
+
+                                        <ValidatedTextInput PropertyName="Value" @bind-Value="@_newHeader.Value" 
+                                                            @bind-BadRequestResult="_errorsOnSave" 
+                                                            ParentObjectContext="@_newHeader"
+                                                            EnableClientSideValidation="true" />
+                                        
+                                        <RadzenButton class="mx-1" 
+                                                      ButtonType="ButtonType.Submit" 
+                                                      Text="Add" 
+                                                      Click="@AddHeader" 
+                                                      Disabled="@(string.IsNullOrWhiteSpace(_newHeader.Name) || string.IsNullOrWhiteSpace(_newHeader.Value))" 
+                                                      Style="width: 100px;" />
+                                    </div>
+                                    <div  @ref="_headerElementReference">
+                                        <RadzenDataGrid @ref="_headerGrid" class="mt-1" 
+                                                        Data="@_response.Headers" 
+                                                        AllowColumnResize="true"
+                                                        TItem="MockResponseHeaderDto" 
+                                                        Density="Density.Compact" 
+                                                        AllowPaging="true" AllowSorting="true">
+                                            <Columns>
+                                                <RadzenDataGridColumn TItem="MockResponseHeaderDto" Property="Name" Title="Name"/>
+                                                <RadzenDataGridColumn TItem="MockResponseHeaderDto" Property="Value" Title="Value  (right click to copy)">
+                                                    <Template Context="header">
+                                                        <div  @oncontextmenu=@(arg => ShowCopyHeaderContextMenu(arg, string.Join(';', header.Value))) @oncontextmenu:preventDefault="true">
+                                                            @string.Join(';', header.Value)
+                                                        </div>
+                                                    </Template>
+                                                </RadzenDataGridColumn>
+                                                <RadzenDataGridColumn TItem="MockResponseHeaderDto" Context="header" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Title="Remove?" Width="75px">
+                                                    <Template Context="header">
+                                                        <RadzenButton Click="@(_ => DeleteHeader(header))" Size="ButtonSize.ExtraSmall" Icon="delete"/>
+                                                    </Template>
+                                                </RadzenDataGridColumn>
+                                            </Columns>
+                                        </RadzenDataGrid>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Encoding" />
+                                </div>
+
+                                <div class="col">
+                                    <RadzenDropDown class="w-100" @bind-Value="@_response.Encoding" 
+                                                    Data="HelperMethodsExtensions.GetEnumList<SupportedEncodingType>()" 
+                                                    AllowFiltering="true" 
+                                                    ValueProperty="EnumValue" 
+                                                    TextProperty="EnumName"
+                                                    Change=@(() => {  _encodingDirty = true; }) />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Content Type" />
+                                </div>
+
+                                <div class="col">
+                                       <ValidatedTextInput  PropertyName="ContentType"
+                                                            Value="@_response.ContentType"
+                                                            ValueChanged="@(args => { _response.ContentType  = args; _contentTypeDirty = true; })"
+                                                            @bind-BadRequestResult="_errorsOnSave" 
+                                                            ParentObjectContext="@_response"
+                                                            EnableClientSideValidation="true" />
+                                </div>
+                            </div>
+                            
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Priority" />
+                                </div>
+                                <div class="col">
+                                    <RadzenNumeric Class="w-100" Name="Priority" TValue="int" @bind-Value="@_response.Priority" Change=@(args => { _response.Priority = args; _priorityDirty = true;} ) />
+                                </div>
+                            </div>
+                            
+                           @if (IsEditMode)
+                           {
+                                <div class="row" style="margin-bottom: 48px">
+                                    <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                        <RadzenLabel Text="Created Utc" />
+                                    </div>
+                                    <div class="col">
+                                        <DetailedDatePicker ShowTime="true" 
+                                                            ShowSeconds="true" 
+                                                            ShowMilliseconds="true" 
+                                                            Value="@_response.CreatedUtc" 
+                                                            ValueChanged="@(arg => { _response.CreatedUtc = arg; _createdDirty = true; })" 
+                                                            DateFormat="dd/MM/yy HH:mm:ss.fff"
+                                                            CssClass="w-100"/>
+                                    </div>
+                                </div>
+                            }
+                           
+                           <div class="d-flex">
+                               <div class="flex-grow-1"></div>
+                               <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="@(IsEditMode ? "Update" : "Create")" Disabled="@(_response == null )"></RadzenButton>
+                                   @if (IsEditMode)
+                                   {
+                                       <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="View Details" Click="@(() => NavigationManager.NavigateTo($"response/viewdetails/{RequestId}/{Id}"))" />
+                                       
+                                       <RadzenButton class="mx-1" Text="Delete Mock Response?" Disabled="@_deleting" Click="@DeleteResponseDialog" />
+                                   }
+                               <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))" />
+                               <div class="flex-grow-1"></div>
+                           </div>
+                           </RadzenFieldset>
+                    </RadzenTemplateForm>
+                </div>
+            </div>
+        </ChildContent>
+    </RadzenPanel>
+}
+
+@code {
+    [Parameter]
+    public int RequestId { get; set; }
+
+    [Parameter]
+    public int Id { get; set; }
+    
+    private RadzenDataGrid<MockResponseHeaderDto> _headerGrid;
+
+    bool IsEditMode => Id > 0;
+
+    MockResponseDto _response;
+
+    bool _deleting;
+    
+    bool _descriptionDirty;
+
+    bool _bodyDirty;
+
+    bool _statusCodeDirty;
+
+    bool _enabledDirty;
+
+    bool _encodingDirty;
+
+    bool _contentTypeDirty;
+
+    bool _priorityDirty;
+
+    bool _createdDirty;
+
+    bool _headersDirty;
+
+    MockResponseHeaderDto _newHeader = new MockResponseHeaderDto();
+    
+    private ElementReference? _headerElementReference;
+
+    readonly JsonPatchDocument<UpdateMockResponseDto> _jsonPatchDocument = new ();
+    
+    private BadRequestResultDto _errorsOnSave;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEditMode)
+        {
+            var result = await ResponseService.GetResponseAsync(Id);
+            
+            if (result.IsSuccessStatusCode)
+            {
+                _response = result.Content;
+            }
+        }
+        else
+        {
+            _response = new MockResponseDto()
+            {
+                ServiceRequestId = RequestId
+            };
+        }
+    }
+
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        ResetFieldsModifiedState();
+    }
+    
+    private async Task AddHeader()
+    {
+        _headersDirty = true;
+        _response.Headers ??= new List<MockResponseHeaderDto>();
+        
+        _response.Headers.Add(new MockResponseHeaderDto() { Name = _newHeader.Name, Value = _newHeader.Value });
+        _newHeader = new MockResponseHeaderDto();
+        await _headerGrid.Reload();
+    }
+
+    async Task DeleteHeader(MockResponseHeaderDto header)
+    {
+        _headersDirty = true;
+        
+        var confirmed = await DialogService.Confirm("Are you sure?", "Confirm remove header from list?",
+            new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+
+        if (confirmed != null && confirmed.Value)
+        {
+            if (header != null)
+            {
+                _response.Headers.Remove(header);
+            }
+
+            await _headerGrid.Reload();
+        }
+    }
+    
+    async Task DeleteResponseDialog()
+    {
+        var confirmed = await DialogService.Confirm("Are you sure?", "Confirm delete mock response?",
+            new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+
+        if (confirmed != null && confirmed.Value)
+        {
+            _deleting = true;
+            StateHasChanged();
+
+            await Task.Run(async () =>
+            {
+                var deleteResult = await ResponseService.DeleteResponseAsync(Id);
+
+                if (deleteResult)
+                    GoBackPage(true);
+                
+                _deleting = false;
+                StateHasChanged();
+            });
+        }
+    }
+
+    private void ResetFieldsModifiedState()
+    {
+        _descriptionDirty = false;
+        _bodyDirty = false;
+        _statusCodeDirty = false;
+        _enabledDirty = false;
+        _encodingDirty = false;
+        _contentTypeDirty = false;
+        _priorityDirty = false;
+        _createdDirty = false;
+        _headersDirty = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_response.Body))
+            _response.Body = null;
+
+        _errorsOnSave = null;
+        if (IsEditMode)
+        {
+            if(_descriptionDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Description, _response.Description);
+            
+            if (_bodyDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Body, _response.Body);
+
+            if (_statusCodeDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Code, _response.Code);
+
+            if (_encodingDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Encoding, _response.Encoding);
+            
+            if (_enabledDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Enabled, _response.Enabled);
+
+            if (_contentTypeDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.ContentType, _response.ContentType);
+
+            if (_priorityDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Priority, _response.Priority);
+            
+            if(_createdDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.CreatedUtc, _response.CreatedUtc);
+
+            if (_headersDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Headers, _response.Headers);
+
+            var result = await ResponseService.PatchResponseAsync(Id, _jsonPatchDocument);
+
+            if (result.IsSuccessStatusCode)
+            {
+                GoBackPage(true);
+            }
+            else
+            {
+                _errorsOnSave = result.BadRequestResult;
+            }
+        }
+        else
+        {
+            var result = await ResponseService.CreateResponseAsync(RequestId, _response);
+            
+            if (result.IsSuccessStatusCode)
+            {
+                GoBackPage(true);
+            }
+            else
+            {
+                _errorsOnSave = result.BadRequestResult;
+            }
+        }
+    }
+    
+    async Task OnCopyHeaderValueAsync(string value)
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", value);
+
+        if (_headerElementReference != null)
+        {
+            TooltipService.Open(_headerElementReference.Value,
+                "Copied header value to clipboard!",
+                new TooltipOptions() { Position = TooltipPosition.Bottom, Duration = 1000 }); }
+
+        ContextMenuService.Close();
+    }
+    
+    void ShowCopyHeaderContextMenu(MouseEventArgs args, string value) => ContextMenuService.Open(args, _ =>
+        @<RadzenMenu Click="@(() => OnCopyHeaderValueAsync(value))">
+            <RadzenMenuItem Text="Copy Header Value" />
+        </RadzenMenu>);
+}

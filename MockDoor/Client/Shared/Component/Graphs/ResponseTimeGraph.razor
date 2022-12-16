@@ -1,0 +1,48 @@
+﻿
+<RadzenCard Class="w-100 mb-4">
+    @if (_data == null)
+    {
+        <h2>loading...</h2>
+    }
+    else if(_data.Length < 2)
+    {
+        <RadzenLabel Text="Not enough data to create graph" Style="margin-left: 8px; vertical-align: middle;" />
+    }
+    else
+    {
+        <div class="d-flex">
+            <h3 class="flex-grow-1">ResponseTimeGraph</h3>
+            <RadzenCheckBox @bind-Value="@_showDataLabels" Name="dataLabels"></RadzenCheckBox>
+            <RadzenLabel Text="Show Data Labels" For="dataLabels" Style="margin-left: 8px; vertical-align: middle;" />
+        </div>
+
+        @if (_latencyMin != _latencyMax)
+        {
+            <div class="row m-2">
+                <RadzenLabel Text="Latency Range" Style="margin-left: 8px; vertical-align: middle;" />
+                <RadzenSlider TValue="IEnumerable<int>" Range="true" Min="@_latencyMin" Max="@_latencyMax" @bind-Value=@_latencyRange Change=@(args => UpdateLatencyRange(args)) Class="w-100" />
+            </div>
+        }
+        <div class="row m-2">
+            @if (_dateRange != null && _dateMin != _dateMax)
+            {
+                <RadzenLabel Text="Date/Time Range" Style="margin-left: 8px; vertical-align: middle;" />
+                <RadzenSlider TValue="IEnumerable<int>" Range="true" Min="@_dateMinInt" Max="@_dateMaxInt" @bind-Value=@_dateRange Change=@(args => UpdateDateRange(args)) Class="w-100" />
+            }
+        </div>
+
+    
+        <RadzenChart SeriesClick="@SeriesClick">
+            <RadzenLineSeries Data="@_data" CategoryProperty="Time" Title="Latency" LineType="LineType.Solid" ValueProperty="Latency">
+                <RadzenMarkers MarkerType="MarkerType.Circle" Size="6" Fill="Blue" />
+                <RadzenSeriesDataLabels Visible="@_showDataLabels" />
+            </RadzenLineSeries>
+            <RadzenCategoryAxis Step="@_step" Min="@_dateMin" Max="@_dateMax" FormatString="{0:HH:mm:ss}">
+
+            </RadzenCategoryAxis>
+            <RadzenValueAxis Min="@_currentLatencyMin" Max="@_currentLatencyMax">
+                <RadzenGridLines Visible="true" />
+            </RadzenValueAxis>
+        </RadzenChart>
+    }
+</RadzenCard>

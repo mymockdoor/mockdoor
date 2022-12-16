@@ -1,0 +1,78 @@
+@page "/search-groups"
+
+@inherits BasePageComponent
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="Group Search" Icon="saved_search" />
+    </RadzenBreadCrumb>
+</div>
+
+<RadzenCard class="my-3 h-100">
+    <div class="row">
+        <div class="col-md-10"><h1>Search Service Groups</h1></div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <RadzenDataGrid AllowPaging="true" 
+                            AllowSorting="true" 
+                            AllowFiltering="true"
+                            AllowColumnResize="true"
+                            AllowColumnPicking="true"
+                            AllowColumnReorder="true"
+                            Data="@_serviceGroups" 
+                            GridLines="DataGridGridLines.Both"
+                            TItem="BaseServiceGroupDto"
+                            PageSize="20">
+                <Columns>
+                    <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="Enabled" Title="Enabled" >
+                        <Template Context="group">                        
+                            <ReadOnlyToggleState State="@group.Enabled" TrueText="Enabled" FalseText="Disabled"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="TenantName" Title="Tenant Name" >
+                        <Template Context="group">
+                            <RadzenLink Text="@group.TenantName" Path="@($"tenant/viewdetails/{group.TenantId}")"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="Name" Title="Group Name" >
+                        <Template Context="group">
+                            <RadzenLink Text="@group.Name" Path="@($"service-group/viewdetails/{group.Id}")"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="Path" Title="Path" >
+                        <Template Context="group">
+                            <RadzenLink Text="@group.Path" Path="@($"service-group/viewdetails/{group.Id}")"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="Path" Title="Path" >
+                        <Template Context="group">
+                            @if (string.IsNullOrWhiteSpace(group.DefaultHealthCheckUrl))
+                            {
+                                <p>[Not Set]</p>
+                            }
+                            else
+                            {
+                                <RadzenLink Text="@group.DefaultHealthCheckUrl" Path="@($"service-group/viewdetails/{group.Id}")"/>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="SimulateTime" Title="Simulate Time">
+                        <Template Context="group">
+                            @if (group.SimulateTime == null)
+                            {
+                                <p>[Not Set]</p>
+                            }
+                            else
+                            {
+                                <p>@group.SimulateTime.Value.ToString("dd/MM/yy HH:mm:ss.ffff")</p>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</RadzenCard>

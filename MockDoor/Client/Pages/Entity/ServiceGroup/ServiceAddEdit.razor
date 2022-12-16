@@ -1,0 +1,277 @@
+﻿@page "/service-group/create/{TenantId:int}"
+@page "/service-group/edit/{Id:int}"
+
+@inherits BasePageComponent
+
+@inject ServiceGroupService ServiceGroupService
+@inject DialogService DialogService
+
+@implements IDisposable
+
+<PageTitle>@(IsEditMode ? "Edit" : "Create") Service Group</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Icon="mode_edit" Text="@(IsEditMode ? "Edit Service Group" : "Create Service Group")"/>
+    </RadzenBreadCrumb>
+</div>
+
+@if (_serviceGroup == null)
+{
+    <RadzenCard class="shadow">
+        <div>
+            <ShowLoading />
+        </div>
+    </RadzenCard>
+}
+else
+{
+    <RadzenCard class="shadow m-2">
+        <div style="width: 100%; text-align: left" class="d-flex">
+            <h2 class="flex-grow-1 w-100">@(IsEditMode ? "Edit" : "Create" ) Service Group:</h2>
+            <RadzenButton Click="@(() => GoBackPage(true))" ButtonStyle="ButtonStyle.Primary" Icon="subject" Size="ButtonSize.Medium" Disabled="@(!IsEditMode)" />
+        </div>
+        
+        <RadzenSplitter Orientation="Orientation.Horizontal">
+            <RadzenSplitterPane>
+                <RadzenTemplateForm TItem="BasicServiceGroupDto" Data=@_serviceGroup Submit=@SaveAsync @onkeypress:preventDefault>
+                    <RadzenFieldset Text="Service Group information">
+                        <div class="row mb-3">
+                            <div class="col-md-2 align-right" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Name*" />
+                            </div>
+                            <div class="col-md-4">
+                                <ValidatedTextInput PropertyName="Name" 
+                                                    @bind-Value="@_serviceGroup.Name" 
+                                                        @bind-BadRequestResult="_errorsOnSave" 
+                                                        ParentObjectContext="@_serviceGroup"
+                                                        EnableClientSideValidation="true" />
+                            </div>
+                            <div class="col p-0 d-flex">
+                                <RadzenLabel Text="Path*" style="line-height: 2.2rem;" />
+                                
+                                <div class="mx-2 flex-grow-1">                                    
+                                    <ValidatedTextInput PropertyName="Path" 
+                                                        @bind-Value="@_serviceGroup.Path" 
+                                                        @bind-BadRequestResult="_errorsOnSave" 
+                                                        ParentObjectContext="@_serviceGroup"
+                                                        EnableClientSideValidation="true" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-2" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Default Health Check URL" />
+                            </div>
+
+                            <div class="col">
+                                <TestableUrlFormField Value="@_serviceGroup.DefaultHealthCheckUrl" 
+                                                      Name="DefaultHealthCheckUrl" 
+                                                      TestType="TestType.All" 
+                                                      RunTestsOnLoad="@IsEditMode" 
+                                                      ValueChanged="@(value => _serviceGroup.DefaultHealthCheckUrl = value)"
+                                                      @bind-BadRequestResult="_errorsOnSave" 
+                                                      ParentObjectContext="@_serviceGroup"
+                                                      EnableClientSideValidation="true" 
+                                                      Compact="true" />
+                            </div>
+                        </div>
+
+                        @if (IsEditMode)
+                        {
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-2" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Simulation Time" />
+                                </div>
+
+                                <div class="col">
+                                    <TimeTravelSelector Scope="TimeTravelScope.ServiceGroup" Id="@_serviceGroup.Id" ShowSubmit="false" CurrentDateTime="@_serviceGroup.SimulateTime" OnChanged="@(arg => _serviceGroup.SimulateTime = arg)" />
+                                </div>
+                            </div>
+                        }
+
+                        <div class="row mb-3">
+                            <div class="col-md-2" style="line-height: 2.2rem;">
+                                <RadzenLabel Text="Enabled" />
+                            </div>
+
+                            <div class="col">
+                                <RadzenSwitch @bind-Value=@_serviceGroup.Enabled Style="margin-bottom: 20px" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <p>*Required field</p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex">
+                            <div class="flex-grow-1"></div>
+                            <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="@(IsEditMode ? "Update" : "Create")" Disabled="@(!ServiceGroupIsValid() || _deleting)"></RadzenButton>
+
+                            @if (IsEditMode)
+                            {
+                                <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="View Details" Click="@(() => NavigationManager.NavigateTo($"service-group/viewdetails/{Id}"))" />
+                                
+                                <RadzenButton class="mr-1" Text="Delete group?" Click=@(_ => DialogService.Open<DeleteServiceGroupDialog>($"Delete Service Group \"{_serviceGroup.Name}\"?",
+                                                                                                                                new Dictionary<string, object>() { { "ServiceGroupId", _serviceGroup.Id } },
+                                                                                                                                new DialogOptions() { ShowClose = true, ShowTitle = true  })) Disabled="@_deleting" />
+                            }
+
+                            <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))" />
+                            <div class="flex-grow-1"></div>
+                        </div>
+                    </RadzenFieldset>
+                </RadzenTemplateForm>
+            </RadzenSplitterPane>
+            
+            <RadzenSplitterPane>
+                @if (_serviceGroup.Microservices?.Count > 0)
+                {
+                    <div class="row mt-4">
+                        <div class="col">
+                            <RadzenCard>
+                                <h2>Microservices:</h2>
+                                <div style="height: 365px;">
+                                    <SimpleEntityList Items="@_serviceGroup.Microservices" ValueProperty="ID" TextProperty="Name">
+                                        <StartListItem Context="microserviceContext">
+                                            @if (microserviceContext.Enabled)
+                                            {
+                                                <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled" />
+                                            }
+                                            else
+                                            {
+                                                <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled" />
+                                            }
+                                        </StartListItem>
+
+                                        <ListItem Context="microserviceContext">
+                                            <span class="p-2 flex-grow-1">@(HelperMethodsExtensions.SafePrint(microserviceContext.Name, microserviceContext.TargetUrl))</span>
+                                        </ListItem>
+
+                                        <EndListItem Context="microserviceContext">
+                                            <RadzenButton Click="@(() => NavigationManager.NavigateTo($"microservice/edit/{_serviceGroup.TenantId}/{microserviceContext.Id}?returnUrl={_returnUrl}"))"
+                                                            ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small" />
+                                        </EndListItem>
+                                    </SimpleEntityList>
+                                </div>
+                            </RadzenCard>
+                        </div>
+                    </div>
+                }
+            </RadzenSplitterPane>
+        </RadzenSplitter>
+    </RadzenCard>
+}
+
+@code {
+    [Parameter]
+    public int TenantId { get; set; }
+
+    [Parameter]
+    public int Id { get; set; }
+
+    bool IsEditMode => Id > 0;
+
+    bool _deleting;
+
+    string _returnUrl;
+
+    BasicServiceGroupDto _serviceGroup;
+
+    BadRequestResultDto _errorsOnSave;
+
+    protected override void OnInitialized()
+    {
+        DialogService.OnClose += OnCloseDeleteDialog;
+        if(IsEditMode){
+            _returnUrl = $"service-group/edit/{Id}";
+        }
+        else {
+            _returnUrl = $"service-group/create/{TenantId}";
+        }
+    }
+
+    void IDisposable.Dispose()
+    {
+        DialogService.OnClose -= OnCloseDeleteDialog;
+    }
+
+    void OnCloseDeleteDialog(dynamic result)
+    {
+        bool deleteConfirmed = Convert.ToBoolean(result);
+
+        if (deleteConfirmed)
+        {
+            _deleting = true;
+            StateHasChanged();
+
+            Task.Run(async () =>
+            {
+                var response = await ServiceGroupService.DeleteServiceGroupAsync(Id);
+
+                if (response)
+                    GoBackPage(true);
+                
+                _deleting = false;
+                StateHasChanged();
+            });
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEditMode)
+        {
+            var response = await ServiceGroupService.GetServiceGroupAsync(Id);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _serviceGroup = response.Content;
+            }
+        }
+        else
+        {
+            _serviceGroup = new BasicServiceGroupDto()
+            {
+                TenantId = TenantId
+            };
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (IsEditMode)
+        {
+            var response = await ServiceGroupService.UpdateServiceGroupAsync(Id, _serviceGroup);
+           
+            if (!response.IsSuccessStatusCode)
+            {
+                _errorsOnSave = response.BadRequestResult;
+                return;
+            }
+        }
+        else
+        {
+            var response = await ServiceGroupService.CreateServiceGroup(TenantId, _serviceGroup);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _errorsOnSave = response.BadRequestResult;
+                return;
+            }
+        }
+        GoBackPage(true);
+    }
+
+    private bool ServiceGroupIsValid()
+    {
+        return _serviceGroup != null && 
+               !string.IsNullOrWhiteSpace(_serviceGroup.Name) && 
+               !string.IsNullOrWhiteSpace(_serviceGroup.Path) &&
+               _serviceGroup.IsValid();
+    }
+}

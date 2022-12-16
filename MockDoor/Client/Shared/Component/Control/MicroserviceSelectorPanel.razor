@@ -1,0 +1,87 @@
+<div class="row no-gutters my-2">
+    <div class="col-md-4 ">
+        <RadzenCard>
+            <div class="d-flex">
+            <RadzenDropDown class="flex-grow-1" 
+                            AllowClear="true" 
+                            AllowFiltering="true" 
+                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
+                            @bind-Value=@SelectedTenantId 
+                            Placeholder="Select Tenant..." 
+                            Disabled="@(Tenants == null)"
+                            Data=@Tenants?.Tenants 
+                            TextProperty="Name" 
+                            ValueProperty="ID" 
+                            TValue="int?" 
+                            Change=@((args) => OnChangeTenantAsync((int?)args, true)) />
+            
+                @if (ShowCreateButtons)
+                {
+                    <RadzenButton class="ml-1"
+                                  Click="@(() => NavigationManager.NavigateTo($"tenant/create?returnUrl={ReturnUrl}"))"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Size="ButtonSize.Medium"
+                                  Icon="add_circle"/>
+                }
+            </div>
+        </RadzenCard>
+    </div>
+
+    <div class="col-md-4">
+        <RadzenCard class="ml-2">
+            <div class="d-flex">
+                <RadzenDropDown class="flex-grow-1" 
+                                AllowClear="true" 
+                                AllowFiltering="true" 
+                                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
+                                @bind-Value=@SelectedServiceGroupId 
+                                Placeholder="Select Service Group..." 
+                                Disabled="@(ServiceGroupsCollection == null)"
+                                Data=@ServiceGroupsCollection?.ServiceGroups 
+                                TextProperty="Name" 
+                                ValueProperty="ID" 
+                                TValue="int?" 
+                                Change=@((args) => OnChangeServiceGroupAsync((int?)args, true)) />
+
+                @if (ShowCreateButtons)
+                {
+                    <RadzenButton class="ml-1"
+                                  Click="@(() => NavigationManager.NavigateTo($"service-group/create/{SelectedTenantId}?returnUrl={ReturnUrl}"))"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Size="ButtonSize.Medium"
+                                  Icon="add_circle"
+                                  Disabled="@(!IsTenantSelected())"/>
+                }
+            </div>
+        </RadzenCard>
+    </div>
+
+    <div class="col-md-4 " >
+        <RadzenCard class="ml-2">
+            <div class="d-flex" >
+                <RadzenDropDown class="flex-grow-1" 
+                                AllowClear="true" 
+                                AllowFiltering="true" 
+                                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
+                                @bind-Value=@SelectedMicroserviceId 
+                                Placeholder="Select Microservice..." 
+                                Disabled="@(Microservices == null)"
+                                Data=@Microservices 
+                                TextProperty="Name" 
+                                ValueProperty="ID" 
+                                TValue="int?"
+                                Change=@((args) => OnChangeMicroserviceAsync((int?)args, true))  />
+                
+                @if (ShowCreateButtons)
+                {
+                    <RadzenButton class="ml-1"
+                                  Click="@(() => NavigationManager.NavigateTo($"microservice/create/{SelectedTenantId}/{SelectedServiceGroupId}?returnUrl={ReturnUrl}"))"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Size="ButtonSize.Medium"
+                                  Icon="add_circle"
+                                  Disabled="@(!IsTenantSelected() || !IsServiceGroupSelected())"/>
+                }
+            </div>
+        </RadzenCard>
+    </div>
+</div>

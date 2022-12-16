@@ -1,0 +1,30 @@
+﻿@page "/livefeed"
+
+@inherits BasePageComponent
+
+<PageTitle>Live feed</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="Live feed" Icon="feed" />
+    </RadzenBreadCrumb>
+</div>
+<MicroserviceSelectorPanel @bind-SelectedMicroserviceId="_selectedMicroserviceId" ShowCreateButtons="false" />
+
+@if (_selectedMicroserviceId != null)
+{
+    <RadzenCard class="h-100">
+        <LiveServiceFeed MicroserviceId="_selectedMicroserviceId.Value" />
+    </RadzenCard>
+}
+else
+{
+    <RadzenCard class="text-center h-100 d-flex flex-column justify-content-center">
+        <h2>Select a microservice above to view its live feed</h2>
+    </RadzenCard>
+}
+
+@code{
+    private int? _selectedMicroserviceId;
+}

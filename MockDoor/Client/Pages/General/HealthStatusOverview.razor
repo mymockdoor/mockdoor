@@ -1,0 +1,127 @@
+﻿@page "/health-overview" 
+
+@inherits BasePageComponent
+
+@inject MicroserviceService MicroserviceService
+@inject ServiceGroupService ServiceGroupService
+
+<PageTitle>Health Overview</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="Health Overview" Icon="check_circle" />
+    </RadzenBreadCrumb>
+</div>
+
+<div class="pt-2">
+    @if (ServiceGroups != null)
+    {
+        <RadzenCard>
+            <div class="d-flex">
+                <h3 class="flex-grow-1">Service Group Health Checks</h3>
+
+                <RadzenDropDown TValue="int" Data="@_pageSizes" Value="@_serviceGroupPageCount" Change="@(args => _serviceGroupPageCount = (int)args)"/>
+            </div>
+
+            <RadzenDataGrid AllowFiltering="true" AllowPaging="true" AllowColumnResize="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
+                            PageSize=@_serviceGroupPageCount AllowSorting="true" Data="@FilteredServiceGroups" TItem="BaseServiceGroupDto"
+                            GridLines="DataGridGridLines.Both" AllowVirtualization="true" >
+                <Columns>
+                    <RadzenDataGridColumn Width="100px" TItem="BaseServiceGroupDto" Property="Id" Title="ID"/>
+                    <RadzenDataGridColumn Width="120px" TItem="BaseServiceGroupDto" Property="Name" Title="Name"/>
+                    <RadzenDataGridColumn Width="180px" TItem="BaseServiceGroupDto" Property="TenantName" Title="Tenants Name"/>
+
+                    <RadzenDataGridColumn TItem="BaseServiceGroupDto" Property="DefaultHealthCheckUrl" Title="Url"/>
+                    <RadzenDataGridColumn Width="150px" TItem="BaseServiceGroupDto" Property="DefaultHealthCheckUrl" Title="Status">
+                        <Template Context="serviceGroup">
+                            <AnimatedHealthStatusIndicator TestUrl="@serviceGroup.DefaultHealthCheckUrl"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    }
+
+    @if (MicroserviceStatusItems != null)
+    {
+        <RadzenCard Style="margin-top: 15px;">
+            <div class="d-flex">
+                <h3 class="flex-grow-1">Microservices Checks</h3>
+
+                <RadzenDropDown TValue="int" Data="@_pageSizes" Value="@_microservicePageCount" Change="@(args => _microservicePageCount = (int)args)"/>
+            </div>
+
+            <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowPaging="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
+                            PageSize=@_microservicePageCount AllowSorting="true" Data="@MicroserviceStatusItems" TItem="MicroserviceHealthStatusItem"
+                            GridLines="DataGridGridLines.Both" AllowVirtualization="true" >
+                <Columns>
+                    <RadzenDataGridColumn Width="100px" TItem="MicroserviceHealthStatusItem" Property="Id" Title="ID"/>
+                    
+                    <RadzenDataGridColumn Width="120px" TItem="MicroserviceHealthStatusItem" Title="Tenant" Property="TenantName" />
+                    
+                    <RadzenDataGridColumn Width="160px" TItem="MicroserviceHealthStatusItem" Property="ServiceGroupName" Title="Service Group" />
+                    
+                    <RadzenDataGridColumn Width="200px" TItem="MicroserviceHealthStatusItem" Property="Name" Title="Microservice Name"/>
+                    
+                    <RadzenDataGridColumn TItem="MicroserviceHealthStatusItem" Property="TargetUrl" Title="Url"/>
+
+                    <RadzenDataGridColumn Width="80px" TItem="MicroserviceHealthStatusItem" Property="TargetUrl" Title="Status" Filterable="false">
+                        <Template Context="microservice">
+                            <AnimatedHealthStatusIndicator TestUrl="@microservice.TargetUrl"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    }
+</div>
+
+@code {
+
+    IEnumerable<MicroserviceHealthStatusItem> MicroserviceStatusItems { get; set; }
+
+    IEnumerable<BaseServiceGroupDto> ServiceGroups { get; set; }
+
+    IEnumerable<BaseServiceGroupDto> FilteredServiceGroups
+    {
+        get { return ServiceGroups?.Where(s => !string.IsNullOrWhiteSpace(s.DefaultHealthCheckUrl)); }
+    }
+
+    List<int> _pageSizes = new()
+    {
+        4, 8, 16, 1000
+    };
+
+    int _serviceGroupPageCount = 4;
+    int _microservicePageCount = 8;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var microservicesResponse = await MicroserviceService.GetAllMicroserviceListAsync();
+
+        if(microservicesResponse.IsSuccessStatusCode && microservicesResponse.Content != null)
+        {
+            MicroserviceStatusItems = microservicesResponse.Content
+                                                    ?.Where(ms => !string.IsNullOrWhiteSpace(ms.TargetUrl))
+                                                    .Select(m => new MicroserviceHealthStatusItem()
+                                                        {
+                                                            Id = m.Id,
+                                                            Name = m.Name,
+                                                            Path = m.Path,
+                                                            TargetUrl = m.TargetUrl,
+                                                            Enabled = m.Enabled,
+                                                            TenantName = ServiceGroups.FirstOrDefault(sg => sg.Id == m.RegisteredServiceGroupId)?.TenantName,
+                                                            ServiceGroupName = ServiceGroups.FirstOrDefault(sg => sg.Id == m.RegisteredServiceGroupId)?.Name
+                                                        });
+        }
+        var serviceGroupsResponse = await ServiceGroupService.GetServiceGroupListAsync();
+
+        if(serviceGroupsResponse.IsSuccessStatusCode)
+        {
+            ServiceGroups = serviceGroupsResponse.Content;
+        }
+
+        await base.OnInitializedAsync();
+    }
+}

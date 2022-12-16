@@ -1,0 +1,242 @@
+@page "/import-export-tool"
+@using System.Timers;
+@using Newtonsoft.Json.Linq
+
+@inherits BasePageComponent
+
+@implements IDisposable
+
+@inject UtilityService UtilityService 
+@inject IJSRuntime JsRuntime
+@inject ContextMenuService ContextMenuService
+@inject TooltipService TooltipService 
+
+<PageTitle>Import/Export tool</PageTitle>
+
+<RadzenTabs class="h-100">
+    <Tabs>
+        <RadzenTabsItem Text="Export">
+            <div  @oncontextmenu=@(ShowCopyContextMenu) @oncontextmenu:preventDefault="true" class="d-flex flex-column h-100 w-100">
+                <div class="d-flex">
+                    <div>
+                        <RadzenButton class="mr-2" Text="Export as JSON" Click="ExportAsJsonAsync" />
+                    </div>
+                    <div>
+                        <RadzenButton class="mr-2" Text="Export as file" Click="ExportAsFile" />
+                    </div>
+                    <div>
+                        <RadzenButton class="mr-2" Text="Clear" Click="@(() => _exportedJson = string.Empty)" Disabled="@(string.IsNullOrEmpty(_exportedJson))" />
+                    </div>
+                </div>
+                
+                <div @ref="_exportJsonPre" class="flex-grow-1 mt-2 " >
+                    <RadzenTextArea ReadOnly="true" class="overflow-auto w-100" 
+                                    Value="@(_exportedJson.MakePretty())"
+                                    Style="border: 1px solid #808080; height: 750px; background-color: #dedede" />
+                </div>
+            </div>
+        </RadzenTabsItem>
+        <RadzenTabsItem Text="Import">
+            <div class="d-flex">
+                <div>
+                    <RadzenButton class="mr-2" Text="Import from JSON" Click="ImportAsJsonAsync" Disabled="@(DisableImport())"/>
+                    <RadzenButton class="mr-2" Text="Beautify JSON" Click="@Beautify" Disabled="@(DisableBeautify())"/>
+                    <RadzenButton class="mr-2" Text="Clear" 
+                                  Click="@(() => { _importJson = string.Empty; _errorMessage = null; _errorsOnValidate = null; } )"
+                                  Disabled="@(string.IsNullOrEmpty(_importJson))" />
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                {
+                    <div class="flex-grow-1">
+                        <RadzenAlert AlertStyle="AlertStyle.Danger" 
+                                     ShowIcon="false" 
+                                     Variant="Variant.Flat"
+                                     Shade="Shade.Lighter"
+                                     Size="AlertSize.ExtraSmall"
+                                     Style="width: inherit;">
+                            @_errorMessage
+                        </RadzenAlert>
+                    </div>
+                }
+            </div>
+            <div class="d-flex">
+                <RadzenTextArea  class="w-100 h-100 mt-2" Value="@_importJson" @oninput="@(arg => _importJson = arg.Value?.ToString())" @onkeyup="@ResetDebounce" Style="min-height: 750px;"/>
+                
+                @if (_errorsOnValidate?.Errors?.Count > 0)
+                {
+                    <div class="ml-2 mt-2 p-3" style="border: 1px solid #808080; border-radius: 5px; max-height: 750px; overflow-y: auto; background-color: #dedede">
+                        <span class="text-danger">Error(s):</span>
+                        <ul class="text-danger">
+                            @foreach (var errors in _errorsOnValidate.Errors.Keys)
+                            {
+                                <li class="text-danger">
+                                    @errors:
+                                    <ul class="text-danger">
+                                        @foreach (var error in _errorsOnValidate.Errors[errors])
+                                        {
+                                            <li class="text-danger">@error</li>
+                                        }
+                                    </ul>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        </RadzenTabsItem>
+    </Tabs>
+</RadzenTabs>
+
+@code {
+    string _importJson;
+    string _exportedJson;
+    string _errorMessage;
+    
+    BadRequestResultDto _errorsOnValidate;
+
+    ElementReference? _exportJsonPre;
+    
+    private Timer _debounceTimer = default!;
+
+    protected override void OnInitialized()
+    {
+        _debounceTimer = new Timer(1000);
+        _debounceTimer.Elapsed += OnDebounceFinish;
+        _debounceTimer.AutoReset = false;
+    }
+    
+    void ResetDebounce(KeyboardEventArgs e)
+    {
+        _debounceTimer.Stop();
+        _debounceTimer.Start();        
+    }    
+    
+    private async void OnDebounceFinish(Object source, ElapsedEventArgs e)
+    {
+        ValidateImport();
+        await InvokeAsync( StateHasChanged );
+    }
+    
+    void IDisposable.Dispose()
+        =>
+            _debounceTimer?.Dispose();   
+    
+    private async Task ExportAsJsonAsync()
+    {
+        _errorMessage = null;
+        _exportedJson = null;
+        
+        var result = await UtilityService.ExportAsJsonAsync();
+
+        if (result.IsSuccessStatusCode)
+        {
+            _exportedJson = result.Content;
+        }
+        else
+        {
+            _errorMessage = result.Message;
+        }
+        StateHasChanged();
+    }
+
+    private async Task ExportAsFile()
+    {
+        await JsRuntime.InvokeVoidAsync("triggerFileDownload", "mockdoor-backup.json", "api/utilities/database/export");
+    }
+
+    private async Task ImportAsJsonAsync()
+    {
+        _errorMessage = null;
+        var result = await UtilityService.ImportDatabaseAsJsonAsync(_importJson);
+
+        if (!result.IsSuccessStatusCode)
+        {
+            _errorMessage = result.Message;
+        }
+        else
+        {
+            NavigationManager.NavigateTo("home");
+        }
+        StateHasChanged();
+    }
+    
+    async Task OnCopyJsonAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _exportedJson);
+
+        if (_exportJsonPre != null)
+        {
+            TooltipService.Open(_exportJsonPre.Value,
+                "Copied to clipboard!",
+                new TooltipOptions() { Position = TooltipPosition.Bottom, Duration = 1000 }); }
+
+        ContextMenuService.Close();
+    }
+
+    void ValidateImport()
+    {
+        Console.WriteLine("Validating import model");
+        _errorsOnValidate = null;
+        _errorMessage = null;
+        
+        if (!string.IsNullOrWhiteSpace(_importJson))
+        {
+            try
+            {
+                var importModel = JsonConvert.DeserializeObject<FullDatabaseDto>(_importJson, new JsonSerializerSettings()
+                {
+                    MissingMemberHandling = MissingMemberHandling.Error
+                });
+
+                var validationResults = new List<ValidationResult>();
+                if (!GeneralHelper.TryValidateFullObject(importModel, new ValidationContext(importModel), validationResults))
+                {
+                    Console.WriteLine("validation failed");
+                    _errorsOnValidate = validationResults.ToBadRequestResult();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"validation failed exception {ex.Message}");
+                _errorMessage = "Invalid format";
+            }
+        }
+    }
+
+    void ShowCopyContextMenu(MouseEventArgs args) => ContextMenuService.Open(args, _ =>
+        @<RadzenMenu Click="@OnCopyJsonAsync">
+            <RadzenMenuItem Text="Copy Data" />
+        </RadzenMenu>);
+
+    private bool DisableImport()
+    {
+        return string.IsNullOrWhiteSpace(_importJson) || !string.IsNullOrWhiteSpace(_errorMessage) || _errorsOnValidate != null;
+    }
+
+    private void Beautify()
+    {
+        _importJson = _importJson.MakePretty();
+    }
+    
+    private bool DisableBeautify()
+    {
+        if (string.IsNullOrWhiteSpace(_importJson))
+        {
+            return true;
+        }
+        
+        try
+        {
+            JToken.Parse(_importJson).ToString(Formatting.Indented);
+            return false;
+        }
+        catch (Exception)
+        {
+            return true;
+        }
+    }
+
+}
+
+
+

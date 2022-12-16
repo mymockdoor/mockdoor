@@ -1,0 +1,176 @@
+@page "/response/viewdetails/{RequestId:int}/{Id:int}"
+
+@inherits BasePageComponent
+
+@inject ResponseService ResponseService
+@inject IJSRuntime JsRuntime
+@inject ContextMenuService ContextMenuService
+@inject TooltipService TooltipService
+
+<PageTitle>View Mock Response Details</PageTitle>
+
+@if (_response == null)
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel Style="margin: 15px; ">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>Mock Response Details:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">
+                <div class="col">
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Description" />
+                        </div>
+                        <div class="col">
+                            <p>@_response.Description</p>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Body" />
+                        </div>
+                        <div class="col">
+                            <pre style="max-height: 500px;">@_response.Body</pre>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Http Status Code" />
+                        </div>
+
+                        <div class="col">
+                            <p>@_response.Code.ToString()</p>
+                        </div>
+                    </div>
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Mock Response Headers" />
+                        </div>
+                        <div class="col">
+                            <div @ref="_headerElementReference">
+                                <RadzenDataGrid class="mt-1" 
+                                                Data="@_response.Headers" 
+                                                TItem="MockResponseHeaderDto" 
+                                                Density="Density.Compact"
+                                                AllowColumnResize="true"
+                                                AllowPaging="true" AllowSorting="true">
+                                    <Columns>
+                                        <RadzenDataGridColumn TItem="MockResponseHeaderDto" Property="Name" Title="Name"/>
+                                        <RadzenDataGridColumn TItem="MockResponseHeaderDto" Property="Value" Title="Value (right click to copy)">
+                                            <Template Context="header">
+                                                <div @oncontextmenu=@(arg => ShowCopyHeaderContextMenu(arg, string.Join(';', header.Value))) @oncontextmenu:preventDefault="true">
+                                                    @string.Join(';', header.Value)
+                                                </div>
+                                            </Template>
+                                        </RadzenDataGridColumn>
+                                    </Columns>
+                                </RadzenDataGrid>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Encoding" />
+                        </div>
+
+                        <div class="col">
+                            <p>@_response.Encoding.ToString()</p>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px;">
+                        <div class="col-md-3" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Content Type" />
+                        </div>
+
+                        <div class="col">
+                            <p>@_response.ContentType</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Priority" />
+                        </div>
+                        <div class="col">
+                            <p>@_response.Priority</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Created Utc" />
+                        </div>
+                        <div class="col">
+                            <p>@_response.CreatedUtc.ToString("dd/MM/yy HH:mm:ss.ffff")</p>
+                        </div>
+                    </div>
+                   
+                   <div class="d-flex">
+                       <div class="flex-grow-1"></div>
+                       <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Edit" Click="@(() => NavigationManager.NavigateTo($"response/edit/{RequestId}/{Id}"))" />
+                          
+                       <RadzenButton ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))" />
+                       <div class="flex-grow-1"></div>
+                   </div>
+                </div>
+            </div>
+        </ChildContent>
+    </RadzenPanel>
+}
+
+@code {
+    [Parameter]
+    public int RequestId { get; set; }
+
+    [Parameter]
+    public int Id { get; set; }
+
+    MockResponseDto _response;
+    
+    private ElementReference? _headerElementReference;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var result = await ResponseService.GetResponseAsync(Id);
+        
+        if (result.IsSuccessStatusCode)
+        {
+            _response = result.Content;
+        }
+    }
+    
+    async Task OnCopyHeaderValueAsync(string value)
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", value);
+
+        if (_headerElementReference != null)
+        {
+            TooltipService.Open(_headerElementReference.Value,
+                "Copied header value to clipboard!",
+                new TooltipOptions() { Position = TooltipPosition.Bottom, Duration = 1000 }); }
+
+        ContextMenuService.Close();
+    }
+    
+    void ShowCopyHeaderContextMenu(MouseEventArgs args, string value) => ContextMenuService.Open(args, _ =>
+        @<RadzenMenu Click="@(() => OnCopyHeaderValueAsync(value))">
+            <RadzenMenuItem Text="Copy Header Value" />
+        </RadzenMenu>);
+}

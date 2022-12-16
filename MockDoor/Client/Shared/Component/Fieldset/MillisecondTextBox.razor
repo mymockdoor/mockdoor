@@ -1,0 +1,32 @@
+<RadzenNumeric TValue="decimal?" Style="width: 110px;" 
+                                   Value="@(Value.GetPreciseMilliseconds(1))"
+                                   Step="0.1"
+                                   Min="0"
+                                   ShowUpDown="false" 
+                                   Max="1000" Format="000.0 ms"
+                                   Change="@(async arg => await ReplaceMilliseconds(Value, arg))"
+                                   Placeholder="ms" Disabled="@(Value == null)" />
+
+@code {
+    [Parameter]
+    public DateTime? Value { get; set; }
+    
+    [Parameter]
+    public EventCallback<DateTime?> ValueChanged { get; set; }
+
+    private async Task ReplaceMilliseconds(DateTime? source, decimal? milliseconds)
+    {
+        if (milliseconds == null || source == null)
+        {
+            Value = null;
+        }
+        else
+        {
+            source = source.Value.AddTicks(-1 * source.Value.GetMillisecondsAsTicks());
+            var millisecondTicks = milliseconds.Value * TimeSpan.TicksPerMillisecond;
+            source = source.Value.AddTicks((long)millisecondTicks);
+            Value = source.Value;
+        }
+        await ValueChanged.InvokeAsync(Value);
+    }
+}

@@ -1,0 +1,74 @@
+﻿@using MockDoor.Shared.Models.ServiceRequest
+@inject DialogService DialogService
+@inject MicroserviceService MicroserviceService
+@inject RequestService RequestService
+
+<RadzenCard class="d-flex flex-column">
+    @if (MicroserviceId == 0)
+    {
+        <GeneralError Message="Error no microservice id provided when attempting to delete. Please contact an administrator" />
+    }
+    else if (_serviceRequests == null)
+    {
+        <div class="flex-grow-1">loading...</div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Are you Sure you want to delete "@_microservice.Name"?</h2>
+            </div>
+        </div>
+
+        @if (_serviceRequests is {Count: > 0 })
+        {
+
+            <div class="row flex-grow-1">
+                <div class="col-md-12">
+                    <h3 style="color: orange">Warning: Deleting this Microservice will also delete the following Service Requests and any related mock responses for them</h3>
+                    <h4>The following Service Requests will be deleted:</h4>
+                    <ul>
+                        @foreach (var serviceRequest in _serviceRequests)
+                        {
+                            <li>@serviceRequest.FromUrl</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <RadzenButton Click="@((_) => DialogService.Close(true))" Text="OK" Style="margin-bottom: 10px; width: 150px" />
+                <RadzenButton Click="@((_) => DialogService.Close(false))" ButtonStyle="ButtonStyle.Secondary" Text="Cancel" Style="margin-bottom: 10px; width: 150px" />
+            </div>
+        </div>
+    }
+</RadzenCard>
+@code {
+    [Parameter]
+    public int MicroserviceId { get; set; }
+
+    private MicroserviceResultDto _microservice;
+    private List<ServiceRequestDto> _serviceRequests;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (MicroserviceId > 0)
+        {
+            var microserviceResponse = await MicroserviceService.GetMicroserviceAsync(MicroserviceId);
+
+            if (microserviceResponse.IsSuccessStatusCode)
+            {
+                _microservice = microserviceResponse.Content;
+            }
+            
+            var requestResponse = await RequestService.GetRequestsAsync(MicroserviceId);
+
+            if (requestResponse.IsSuccessStatusCode)
+            {
+                _serviceRequests = requestResponse.Content;
+            }
+        }
+    }
+}

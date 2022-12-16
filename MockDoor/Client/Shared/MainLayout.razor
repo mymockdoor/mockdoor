@@ -1,0 +1,116 @@
+﻿@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
+@inherits LayoutComponentBase
+
+<RadzenDialog />
+<RadzenNotification />
+<RadzenContextMenu />
+<RadzenTooltip />
+
+<div class="page d-flex flex-column w-100">
+    <div class="w-100">
+        <NavMenu/>
+    </div>
+
+    <div class="main flex-grow-1">
+        <div class="content px-4 h-100 d-flex flex-column">
+            @if (_deploymentConfiguration != null)
+            {
+                <CustomErrorBoundary @ref="_errorBoundary">
+                            <ChildContent>
+                                @if (_deploymentConfiguration.SqlConnectionStatus == ConnectionStringStatus.Success && _deploymentConfiguration.PendingMigrations?.Count() == 0)
+                                {
+                                    @Body
+                                }
+                                else if (_deploymentConfiguration.SqlConnectionStatus == ConnectionStringStatus.Failed || _deploymentConfiguration.SqlConnectionStatus == ConnectionStringStatus.Untested)
+                                {
+                                    @if (_deploymentConfiguration?.Debug ?? false)
+                                    {
+                                        <h1>Sql server connection failed</h1>
+                                        <h2>Current connection string: @_deploymentConfiguration.DatabaseConfig.ConnectionString</h2>
+
+                                        <RadzenTextBox @bind-Value=_connectionString @oninput="@(args => { _connectionString = args.Value as string; _connectionStatus = ConnectionStringStatus.Untested; })"/>
+                                        <RadzenButton Click="@OnSubmitNewConnectionString" Text="Test" Disabled=@_testing/>
+
+                                        <h2>Test status: @_connectionStatus</h2>
+                                        @if (!string.IsNullOrWhiteSpace(_status))
+                                        {
+                                            <h3>Response: @_status</h3>
+                                        }
+
+                                        @if (_connectionStatus == ConnectionStringStatus.Success)
+                                        {
+                                            <p>Database found, change the environment variable for connection string to the below and restart the service</p>
+                                            <h4>Name:</h4>
+                                            <p>ConnectionStrings__sqlserver</p>
+                                            <h4>Value:</h4>
+                                            <p>@_connectionString</p>
+                                        }
+                                        else if (_connectionStatus == ConnectionStringStatus.ConnectNoDatabase)
+                                        {
+                                            <p>Database was NOT found but Mockdoor may be able to create this for you, its recommended you create the database yourself but you can try and skip this step</p>
+                                            <p>If this is the original connection string wait a moment and try refreshing the page, the sql server was probably still booting</p>
+                                            <p>change the environment variable for connection string to the below and restart the service</p>
+                                            <h4>Name:</h4>
+                                            <p>ConnectionStrings__sqlserver</p>
+                                            <h4>Value:</h4>
+                                            <p>@_connectionString</p>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <h1>Sql server connection failed</h1>
+                                        <p>Debug mode disabled, enable debugging to test connection strings in service or correct the connection string during deployment manually then restart the service.</p>
+                                    }
+                                }
+                                else //migrations not applied yet
+                                {
+                                    <h1>Sql server connected</h1>
+                                    <h2>Current connection string: @_deploymentConfiguration.DatabaseConfig.ConnectionString</h2>
+                                    <h1>Migrations not applied yet</h1>
+                                    <ul>
+                                        @foreach (var migration in GetPendingMigrations())
+                                        {
+                                            <li>@migration</li>
+                                        }
+                                    </ul>
+                                    <RadzenButton Click=@ApplyMigrations Text="Apply Migrations"/>
+
+                                    @if (!string.IsNullOrWhiteSpace(_status))
+                                    {
+                                        <h3>Response: @_status</h3>
+                                    }
+                                }
+                            </ChildContent>
+                            <ErrorContent Context="exception">
+                                @if ((_deploymentConfiguration?.Debug ?? false) || Environment.IsDevelopment())
+                                {
+                                    <div class="alert alert-primary">
+                                        <h3>@exception.GetType()</h3>
+                                        <h3>@exception.Message</h3>
+                                        <h4>@exception.StackTrace</h4>
+                                        <button class="btn btn-info" @onclick="() => _errorBoundary.Recover()">Clear</button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-primary">
+                                        <h3>Opps, something went wrong</h3>
+                                        <h3>@exception.Message</h3>
+                                        <button class="btn btn-info" @onclick="() => _errorBoundary.Recover()">Clear</button>
+                                    </div>
+                                }
+
+                            </ErrorContent>
+                        </CustomErrorBoundary>}
+            else if(!string.IsNullOrWhiteSpace(_errorsOnLoad))
+            {
+                <h2>Unexpected error occured:</h2>
+                <p>@_errorsOnLoad</p>
+            }
+            else
+            {
+                <RadzenProgressBar  Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+            }
+        </div>
+    </div>
+</div>

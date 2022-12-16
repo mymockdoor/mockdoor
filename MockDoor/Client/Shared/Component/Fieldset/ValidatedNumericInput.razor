@@ -1,0 +1,137 @@
+<div  class="w-100">
+    <RadzenNumeric class="w-100 flex-grow-1 d-block"  
+                   Name="@PropertyName" 
+                   @bind-Value="@Value"
+                   TValue="int"
+                   Disabled="@Disabled"
+                   @oninput=@(async args => { if (args.Value != null) {Value = (int)args.Value; } await ClientSideValidateAsync(); await ValueChanged.InvokeAsync(Value); })
+                   @onkeydown="OnKeyDownAsync" />
+
+    @if(Required ?? false)
+    {
+        <RadzenRequiredValidator Component="@PropertyName" Text="@($"{PropertyName} is required")" Popup="false" Style="position: absolute" />
+    }
+
+    @if (BadRequestResult != null)
+    {
+        <div style="display: inline-grid;">
+            @foreach (var error in @BadRequestResult?.GetErrors(ExtractRealPropertyName())!)
+            {
+                <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@error</div>
+            }
+        </div>
+    }
+    else if (_clientSideErrors != null)
+    {  
+        <div style="display: inline-grid;">
+           @foreach (var error in @_clientSideErrors?.GetErrors(ExtractRealPropertyName())!)
+           {
+               <div class="mt-1 rz-message rz-messages-error " style="position: relative;">@error</div>
+           }
+       </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string PropertyName { get; set; }
+    
+    [Parameter]
+    public int Value { get; set; }
+    
+    [Parameter]
+    public bool? Required { get; set; }
+    
+    [Parameter]
+    public EventCallback<int> ValueChanged { get; set; }
+    
+    [Parameter]
+    public BadRequestResultDto BadRequestResult { get; set; }
+    
+    [Parameter]
+    public EventCallback<BadRequestResultDto> BadRequestResultChanged { get; set; }
+    
+    [Parameter]
+    public bool EnableClientSideValidation { get; set; }
+    
+    [Parameter]
+    public IValidatableObject ParentObjectContext { get; set; }
+    
+    [Parameter]
+    public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> IsValidClientStateChanged { get; set; }
+    
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private BadRequestResultDto _clientSideErrors;
+
+    private string ExtractRealPropertyName()
+    {
+        if (string.IsNullOrWhiteSpace(PropertyName))
+        {
+            return null;
+        }
+
+        int indexofUniqueSeparator = PropertyName.IndexOf('-');
+
+        if (indexofUniqueSeparator > 0)
+        {
+            return PropertyName.Substring(0, indexofUniqueSeparator);
+        }
+        return PropertyName;
+    }
+    
+    private async Task ClientSideValidateAsync()
+    {
+        _clientSideErrors = null;
+        BadRequestResult = null;
+        await BadRequestResultChanged.InvokeAsync(null);
+        
+        if (!EnableClientSideValidation)
+        {
+            await IsValidClientStateChanged.InvokeAsync(_clientSideErrors == null);
+            return;
+        }
+        
+        var validationResults = new List<ValidationResult>();
+        var validationContext = new ValidationContext(ParentObjectContext) { MemberName = ExtractRealPropertyName() };
+
+        if (ParentObjectContext == null)
+        {
+            validationResults.Add(new ValidationResult("No ParentObjectContext provided. Cannot validate property"));
+        }
+        else if (string.IsNullOrWhiteSpace(PropertyName))
+        {
+            validationResults.Add(new ValidationResult("No PropertyName provided. Cannot validate property"));
+        }
+        
+        //replace empty string with null to resolve url validation
+        Validator.TryValidateProperty(Value, validationContext, validationResults);
+        var manualValidation = ParentObjectContext.Validate((validationContext)).ToList();
+
+        if (manualValidation.Any(mv => mv.MemberNames.Any(mn => mn.Equals(PropertyName))))
+        {
+            validationResults.AddRange(manualValidation);
+        }
+
+        if (validationResults.Count > 0)
+        {
+            _clientSideErrors = validationResults.ToBadRequestResult();
+        }
+        else
+        {
+            _clientSideErrors = null;
+        }
+        await IsValidClientStateChanged.InvokeAsync(_clientSideErrors == null);
+        StateHasChanged();
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs obj)
+    {
+        await OnKeyDown.InvokeAsync(obj);
+    }
+
+}

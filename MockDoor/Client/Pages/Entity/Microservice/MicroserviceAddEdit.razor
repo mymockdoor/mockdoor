@@ -1,0 +1,377 @@
+﻿@page "/microservice/create/{TenantId:int}/{ServiceGroupId:int}"
+@page "/microservice/edit/{TenantId:int}/{Id:int}"
+
+@inherits BasePageComponent
+
+@inject MicroserviceService MicroserviceService
+@inject RequestService RequestService
+@inject DialogService DialogService
+
+@using MockDoor.Shared.Models.ServiceRequest
+@implements IDisposable
+
+<PageTitle>@(IsEditMode ? "Edit" : "Create") Microservice</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Path="@($"service-groups-overview/{TenantId}")" Text="Service Group Overview"/>
+        <RadzenBreadCrumbItem Icon="mode_edit" Text="@(IsEditMode ? "Edit Microservice" : "Create Microservice")"/>
+    </RadzenBreadCrumb>
+</div>
+
+@if (_microservice == null)
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading/>
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>@(IsEditMode ? "Edit" : "Create") Microservice:</h2>
+            </div>
+            @if (IsEditMode)
+            {
+                <RadzenButton Click="@(() => NavigationManager.NavigateTo($"mock-testing?microserviceId={Id}"))"
+                              ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="swap_horiz"/>
+            }
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">
+                <div class="col">
+                    <RadzenTemplateForm TItem="MicroserviceResultDto" Data=@_microservice Submit=@SaveAsync @onkeypress:preventDefault>
+                        <RadzenFieldset Text="Service group information">
+                            <h4 Style="margin-bottom: 20px">Parent Service Group ID: @_microservice.RegisteredServiceGroupId</h4>
+
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Name*"/>
+                                </div>
+                                <div class="col">
+                                    <ValidatedTextInput PropertyName="Name" 
+                                                        @bind-Value="@_microservice.Name" 
+                                                        @bind-BadRequestResult="_errorsOnSave" 
+                                                        ParentObjectContext="@_microservice"
+                                                        EnableClientSideValidation="true" />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Path*"/>
+                                </div>
+                                <div class="col">
+                                    <ValidatedTextInput PropertyName="Path" 
+                                                        @bind-Value="@_microservice.Path" 
+                                                        @bind-BadRequestResult="_errorsOnSave" 
+                                                        ParentObjectContext="@_microservice"
+                                                        EnableClientSideValidation="true" />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    @if (_microservice.ProxyMode)
+                                    {
+                                        <RadzenLabel Text="Target Url/Domain*"/>
+                                    }
+                                    else
+                                    {
+                                        <RadzenLabel Text="Target Url/Domain"/>
+                                    }
+                                </div>
+
+                                <div class="col">
+                                    <TestableUrlFormField Value="@_microservice.TargetUrl" 
+                                                          TestType="TestType.All" 
+                                                          RunTestsOnLoad="@(IsEditMode && !string.IsNullOrWhiteSpace(_microservice.TargetUrl))" 
+                                                          ValueChanged="@(value => _microservice.TargetUrl = value)" 
+                                                          @bind-BadRequestResult="_errorsOnSave" 
+                                                          ParentObjectContext="@_microservice"
+                                                          EnableClientSideValidation="true" />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Fake Delay (ms)"/>
+                                </div>
+                                <div class="col">
+                                       <ValidatedNumericInput PropertyName="FakeDelay" 
+                                                           @bind-Value="@_microservice.FakeDelay" 
+                                                           @bind-BadRequestResult="_errorsOnSave" 
+                                                           ParentObjectContext="@_microservice"
+                                                           EnableClientSideValidation="true" />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Enabled"/>
+                                </div>
+
+                                <div class="col">
+                                    <RadzenSwitch @bind-Value=@_microservice.Enabled />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Header Filtering Mode"/>
+                                </div>
+
+                                <div class="col">
+                                    <RadzenDropDown class="w-100" @bind-Value=@_microservice.HeadersMode Data="HelperMethodsExtensions.GetEnumList<HeadersMode>()" AllowFiltering="true" ValueProperty="EnumValue" TextProperty="EnumName"/>
+                                </div>
+                            </div>
+
+                            <ServiceHeaderListField Headers=@_microservice.Headers ValueProperty="Name"/>
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Proxy Mode:"/>
+                                </div>
+
+                                <div class="col">
+                                    <RadzenSwitch @bind-Value=@_microservice.ProxyMode />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Randomise Mock Results"/>
+                                </div>
+
+                                <div class="col">
+                                    <RadzenSwitch @bind-Value=@_microservice.RandomiseMockResult />
+                                </div>
+                            </div>
+
+                            <div class="row" style="margin-bottom: 48px;">
+                                <div class="col-md-3" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Tenant Passthrough"/>
+                                </div>
+
+                                <div class="col">
+                                    <RadzenSwitch @bind-Value=@_microservice.PassThroughTenant />
+                                </div>
+                            </div>
+
+                            @if (IsEditMode)
+                            {
+                                <div class="row" style="margin-bottom: 48px;">
+                                    <div class="col-md-3" style="line-height: 2.2rem;">
+                                        <RadzenLabel Text="Simulation Time"/>
+                                    </div>
+
+                                    <div class="col">
+                                        <TimeTravelSelector Scope="TimeTravelScope.Microservice" Id="@_microservice.Id" ShowSubmit="false" CurrentDateTime="@_microservice.SimulateTime" OnChanged="@(arg => _microservice.SimulateTime = arg)"/>
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="row">
+                                <div class="col">
+                                    <p>*Required field</p>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex">
+                                <div class="flex-grow-1"></div>
+
+                                <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="@(IsEditMode ? "Update" : "Create")" Disabled="@(!MicroserviceIsValid() || _deleting)"></RadzenButton>
+
+                                @if (IsEditMode)
+                                {
+                                    <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="View Details" Click="@(() => NavigationManager.NavigateTo($"microservice/viewdetails/{TenantId}/{Id}"))"/>
+                                    
+                                    <RadzenButton Iclass="mx-1" ButtonType="ButtonType.Submit" Text="Add Request" Click="@(() => NavigationManager.NavigateTo($"request/create/{TenantId}/{_microservice.Id}?returnUrl=microservice/edit/{TenantId}/{Id}"))" />
+                                
+                                    <RadzenButton class="mx-1" Text="Delete Microservice?" Click=@(_ => DialogService.Open<DeleteMicroserviceDialog>($"Delete Microservice \"{_microservice.Name}\"?",
+                                                                                              new Dictionary<string, object>() { { "MicroserviceId", _microservice.Id } },
+                                                                                              new DialogOptions() { ShowClose = true, ShowTitle = true  })) Disabled="@_deleting" />
+                                }
+                                <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))"/>
+
+                                <div class="flex-grow-1"></div>
+                            </div>
+
+                        </RadzenFieldset>
+                    </RadzenTemplateForm>
+                </div>
+            </div>
+            
+            @if (_microserviceRequests?.Count > 0)
+            {
+                <div class="row mt-4">
+                    <div class="col">
+                        <RadzenCard>
+                                    @if (_microserviceRequests.Count > 0)
+                                    {
+                                        <h2>Requests:</h2>
+                                        <div style="height: 365px;">
+                                            <SimpleEntityList Items="@_microserviceRequests" ValueProperty="ID" TextProperty="FromUrl">
+                                                <StartListItem Context="serviceRequest">
+                                                    @if (serviceRequest.Enabled)
+                                                    {
+                                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled" />
+                                                    }
+                                                </StartListItem>
+    
+                                                <ListItem Context="serviceRequest">
+                                                    <span class="p-2 flex-grow-1">@serviceRequest.FromUrl</span>
+                                                </ListItem>
+    
+                                                <EndListItem Context="serviceRequest">
+                                                    <div class="d-flex">
+                                                        <RadzenButton   class="mr-1"
+                                                                        Click="@(() => NavigationManager.NavigateTo($"request/viewdetails/{TenantId}/{serviceRequest.Id}"))"
+                                                                        ButtonStyle="ButtonStyle.Primary" Icon="preview" Size="ButtonSize.Small"/>
+
+                                                        <RadzenButton   
+                                                                        Click="@(() => NavigationManager.NavigateTo($"request/edit/{TenantId}/{serviceRequest.Id}"))"
+                                                                        ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small"/>
+                                                   </div>
+                                                </EndListItem>
+                                            </SimpleEntityList>
+                                        </div>
+                                    }
+                        </RadzenCard>
+                    </div>
+                </div>
+            }
+        </ChildContent>
+    </RadzenPanel>
+}
+
+@code {
+
+    [Parameter]
+    public int ServiceGroupId { get; set; }
+
+    [Parameter]
+    public int TenantId { get; set; }
+
+    [Parameter]
+    public int Id { get; set; }
+
+    bool IsEditMode => Id > 0;
+
+    bool _deleting;
+
+    MicroserviceResultDto _microservice;
+
+    BadRequestResultDto _errorsOnSave;
+    
+    private List<ServiceRequestDto> _microserviceRequests;
+
+    protected override void OnInitialized()
+    {
+        DialogService.OnClose += OnCloseDeleteDialog;
+        base.OnInitialized();
+    }
+
+    void IDisposable.Dispose()
+    {
+        DialogService.OnClose -= OnCloseDeleteDialog;
+    }
+
+    void OnCloseDeleteDialog(dynamic result)
+    {
+        bool deleteConfirmed = Convert.ToBoolean(result);
+
+        if (deleteConfirmed)
+        {
+            _deleting = true;
+            this.StateHasChanged();
+
+            Task.Run(async () =>
+            {
+                var response = await MicroserviceService.DeleteMicroserviceAsync(Id);
+
+                if (response.IsSuccessStatusCode)
+                    GoBackPage(true);
+                
+                _deleting = false;
+                this.StateHasChanged();
+            });
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEditMode)
+        {
+            var response = await MicroserviceService.GetMicroserviceAsync(Id);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _microservice = response.Content;
+            }
+            else
+            {
+                _errorsOnSave = response.BadRequestResult;
+            }
+
+            var requestResponse = await RequestService.GetRequestsAsync(Id); 
+            
+            if (requestResponse.IsSuccessStatusCode)
+            {
+                _microserviceRequests = requestResponse.Content;
+            }
+        }
+        else
+        {
+            _microservice = new MicroserviceResultDto()
+            {
+                RegisteredServiceGroupId = ServiceGroupId
+            };
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorsOnSave = null;
+        if (IsEditMode)
+        {
+            var response = await MicroserviceService.UpdateMicroserviceAsync(Id, _microservice);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _errorsOnSave = response.BadRequestResult;
+                return;
+            }
+        }
+        else
+        {
+            var response = await MicroserviceService.CreateMicroserviceAsync(ServiceGroupId, _microservice);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _errorsOnSave = response.BadRequestResult;
+                return;
+            }
+        }
+
+        GoBackPage(true);
+    }
+
+    private bool MicroserviceIsValid()
+    {
+        return _microservice != null &&
+               !string.IsNullOrWhiteSpace(_microservice.Name) && 
+               _microservice.IsValid();
+    }
+
+}

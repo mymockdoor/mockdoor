@@ -1,0 +1,61 @@
+@page "/search-tenants"
+
+@inherits BasePageComponent
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="Tenant Search" Icon="person_search" />
+    </RadzenBreadCrumb>
+</div>
+
+<RadzenCard class="my-3 h-100">
+    <div class="row">
+        <div class="col-md-10"><h1>Search Tenants</h1></div>
+
+        <div class="col-md-2 text-right">
+            <RadzenButton Click="@(() => NavigationManager.NavigateTo($"tenant/create"))" 
+                          ButtonStyle="ButtonStyle.Primary" 
+                          Size="ButtonSize.Small" 
+                          Icon="add" Text="Add Tenant" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <RadzenDataGrid AllowPaging="true" 
+                            AllowSorting="true" 
+                            AllowFiltering="true"
+                            AllowColumnResize="true"
+                            Data="@_tenantList?.Tenants" 
+                            GridLines="DataGridGridLines.Both"
+                            TItem="BaseTenantDto"
+                            PageSize="20">
+                <Columns>
+                    <RadzenDataGridColumn TItem="BaseTenantDto" Property="Name" Title="Name" >
+                        <Template Context="tenant">
+                            <RadzenLink Text="@tenant.Name" Path="@($"tenant/viewdetails/{tenant.Id}")"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="BaseTenantDto" Property="Path" Title="Path" >
+                        <Template Context="tenant">
+                            <RadzenLink Text="@tenant.Path" Path="@($"tenant/viewdetails/{tenant.Id}")"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="BaseTenantDto" Property="SimulateTime" Title="Simulate Time">
+                        <Template Context="tenant">
+                            @if (tenant.SimulateTime == null)
+                            {
+                                <p>[Not Set]</p>
+                            }
+                            else
+                            {
+                                <p>@tenant.SimulateTime.Value.ToString("dd/MM/yy HH:mm:ss.ffff")</p>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</RadzenCard>

@@ -1,0 +1,136 @@
+﻿@inject NavigationManager NavigationManager
+
+@inject UtilityService UtilityService
+
+<RadzenPanel Style="margin: 8px; height: 100%">
+    <HeaderTemplate>
+        @if (ServiceGroup != null)
+        {
+            <div class="d-flex w-100 border-bottom pb-1">
+                <div class="ml-1">
+                    <div>Name:</div>
+                    <b>@HelperMethodsExtensions.SafePrint(ServiceGroup.Name)</b>
+                </div>
+
+                <div class="mx-3">
+                    <div>Path:</div>
+                    <b>@ServiceGroup.Path</b>
+                </div>
+
+                <div class="flex-grow-1">
+                    <div>Health check url:</div>
+                    <div class="d-flex">
+                        <b>@ServiceGroup.DefaultHealthCheckUrl</b>
+                        @if (!string.IsNullOrWhiteSpace(ServiceGroup.DefaultHealthCheckUrl))
+                        {
+                            <AnimatedHealthStatusIndicator TestUrl="@ServiceGroup.DefaultHealthCheckUrl" TestType="TestType.All" />
+                        }
+                        <div class="flex-grow-1"></div>
+                    </div>
+                </div>
+
+                <div class="my-auto mx-1 text-right">
+                    <RadzenButton Click="@(() => NavigationManager.NavigateTo($"service-group/edit/{ServiceGroup.Id}"))"
+                                                      ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="mode_edit" Text="Edit Group" />
+                </div>
+
+                <div class="my-auto mr-1 text-right">
+                   <RadzenButton Click="@(() => NavigationManager.NavigateTo($"microservice/create/{ServiceGroup.TenantId}/{ServiceGroup.Id}"))"
+                                                                 ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="add"  Text="New Microservice" />
+                </div>
+            </div>
+        }
+    </HeaderTemplate>
+    <ChildContent>
+        @if (ServiceGroup == null)
+        {
+            <ShowLoading />
+        }
+        else
+        { 
+            <div class="d-flex flex-column h-100 basic-tenant-overview-card">
+                @if (ServiceGroup.Microservices?.Count > 0)
+                        {
+                            <div class="p-2 flex-grow-1" style="max-height: 640px;">
+                                <SimpleEntityList Items="@ServiceGroup.Microservices" ValueProperty="ID" CssStyle="max-height: 640px;" TextProperty="Name">
+                                    <StartListItem Context="microserviceContext">
+                                        @if (microserviceContext.Enabled)
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled" />
+                                        }
+                                        else
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled" />
+                                        }
+                                    </StartListItem>
+
+                                    <ListItem Context="microserviceContext">
+                                        <div class="d-flex flex-grow-1">
+                                            <span class="p-2 flex-grow-1">@(HelperMethodsExtensions.SafePrint(microserviceContext.Name, microserviceContext.TargetUrl))</span>
+
+                                            @if (!string.IsNullOrWhiteSpace(microserviceContext.TargetUrl))
+                                            {
+                                                <AnimatedHealthStatusIndicator TestUrl="@microserviceContext.TargetUrl" TestType="TestType.All" />
+                                            }
+                                        </div>
+                                    </ListItem>
+
+                                    <EndListItem Context="microserviceContext">
+                                        <div class="d-flex">
+                                            <RadzenButton class="ml-2" Click="@(() => NavigationManager.NavigateTo($"requests-manager/{ServiceGroup.TenantId}/{microserviceContext.Id}"))"
+                                                          ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall">Manage Results</RadzenButton>
+
+                                            <RadzenButton class="mx-1" Style="width: 45px" Click="@(() => NavigationManager.NavigateTo($"microservice/edit/{ServiceGroup.TenantId}/{microserviceContext.Id}"))"
+                                                          ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" Icon="mode_edit"/>
+
+                                            <RadzenButton class="mr-1" Style="width: 45px" Click="@(() => NavigationManager.NavigateTo($"livefeed?microserviceId={microserviceContext.Id}"))"
+                                                          ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" Icon="preview"/>
+                                        </div>
+                                    </EndListItem>
+                                </SimpleEntityList>
+                            </div>
+                        }
+                        else
+                        {
+                            <RadzenCard class="h-100 w-100">
+                                <div class="row h-100">
+                                    <div class="my-auto text-center w-100">
+                                        <h4>
+                                            No Microservice Found.
+                                        </h4>
+                                    </div>
+                                </div>
+                            </RadzenCard>
+                        }
+                    </div>
+                }
+    </ChildContent>
+</RadzenPanel>
+
+
+
+
+@code {
+    [Parameter]
+    public BasicServiceGroupDto ServiceGroup { get; set; }
+
+    TestUrlResult _testUrlResult = TestUrlResult.Unknown;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(ServiceGroup?.DefaultHealthCheckUrl))
+        {
+            var result = await UtilityService.TestUrlAsync(ServiceGroup.DefaultHealthCheckUrl, false);
+
+            if (result.IsSuccessStatusCode)
+            {
+                var status = result.Content;
+
+                _testUrlResult = status.TestUrlResult;
+            }
+            else{
+                _testUrlResult = TestUrlResult.Failed;
+            }
+        }
+    }
+}

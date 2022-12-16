@@ -1,0 +1,134 @@
+﻿<h2>Response(s)</h2>
+@if (DataSource != null)
+{  
+    <RadzenMenu>
+         <RadzenMenuItem Text="Modify" Icon="account_circle" >
+            <RadzenMenuItem Text="Bulk Edit" @onmouseup=@(_ => EditSelectedRowsAsync()) Icon="account_circle"></RadzenMenuItem>
+            <RadzenMenuItem Text="Commit All Edits" @onmouseup=@(async _ =>  await CommitAllAsync()) Icon="account_circle"></RadzenMenuItem>
+            <RadzenMenuItem Text="Cancel all Edits" @onmouseup=@(_ => CancelAllAsync()) Icon="announcement"></RadzenMenuItem>
+        </RadzenMenuItem> 
+        <RadzenMenuItem Text="Save All Edits" @onmouseup=@(async _ =>  await SaveChangesAsync()) Icon="account_circle"></RadzenMenuItem>
+        <RadzenMenuItem Text="Duplicate"  @onmouseup=@(_ => DuplicateSelectedAsync()) Icon="account_circle" ></RadzenMenuItem>
+        <RadzenMenuItem Text="Delete"  @onmouseup=@(async _ => await ConfirmDeleteAllAsync()) Icon="account_circle" ></RadzenMenuItem>
+    </RadzenMenu>
+
+    <RadzenDataGrid
+        @ref="_responseGrid"
+        SelectionMode="DataGridSelectionMode.Multiple" 
+        Density="@Density"
+        AllowFiltering="true"
+        AllowColumnResize="true"
+        AllowPaging="true" PageSize="15"
+        AllowSorting="true"
+        AllowRowSelectOnRowClick="@(!IsEditing())"
+        RowSelect="@OnRowSelected"
+        RowDeselect="@OnRowDeselected"
+        Data="@(_mockResponses)" 
+        TItem="SnapshotEntity<MockResponseDto>" 
+        EditMode="DataGridEditMode.Multiple" 
+        GridLines="DataGridGridLines.Both"
+        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
+        RowUpdate="@OnUpdateRow"
+        Value=@_selectedMockResponses>
+         <EmptyTemplate>
+            <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">No records to display.</p>
+        </EmptyTemplate>
+        <Columns>
+            <RadzenDataGridColumn Width="130px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.Id" Title="Response ID" />
+
+            <RadzenDataGridColumn Width="100px" TItem="SnapshotEntity<MockResponseDto>" Property="Enabled" Title="Enabled" >
+                <Template Context="response">
+                    @response.Value.Enabled
+                </Template>
+                <EditTemplate Context="response">
+                    <RadzenCheckBox TriState="false" @bind-Value=@response.Value.Enabled />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>" Property="Value.Description" Title="Description" Width="230px">
+                <Template Context="response">
+                    @response.Value.Description
+                </Template>
+                <EditTemplate Context="response">
+                      <ValidatedTextInput PropertyName="Description"
+                                          @bind-Value="@response.Value.Description"
+                                          ParentObjectContext="@response.Value"
+                                          EnableClientSideValidation="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>" Property="Value.Code" Title="Status Code"  Width="230px">
+              
+                <EditTemplate Context="response">
+                    <RadzenDropDown class="w-100" @bind-Value=@response.Value.Code Data="@GetStatusCodeEnums()" AllowFiltering="true" ValueProperty="EnumValue" TextProperty="EnumName" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>" Property="Value.Encoding" Title="Encoding" Width="120px" />
+
+            <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>"  Property="Value.ContentType"  Context="response" Title="Content Type" Width="175px">
+              
+                <EditTemplate Context="response">
+                    <ValidatedTextInput PropertyName="ContentType"
+                                        @bind-Value="@response.Value.ContentType"
+                                        ParentObjectContext="@response.Value"
+                                        EnableClientSideValidation="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>" Property="Value.Body"  Context="response" Title="Body">
+                <Template Context="response">
+                    <pre class="w-100 mb-0" style="max-height: 400px;">@response.Value.Body.MakePretty()</pre>
+                </Template>
+                <EditTemplate Context="response">
+                    <RadzenTextArea @bind-Value=@response.Value.Body Rows=@(CalculateSize(response.Value.Body)) class="w-100" Style="white-space:nowrap" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Width="100px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.Priority" Title="Priority" >
+                <Template Context="response">
+                    @response.Value.Priority
+                </Template>
+                <EditTemplate Context="response">
+                            
+                    <RadzenNumeric TValue="int" Change=@(newValue => @response.Value.Priority = newValue) @bind-value="@response.Value.Priority" Class="w-100" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+            
+            <RadzenDataGridColumn Width="200px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.CreatedUtc" Title="Created">
+                <Template Context="response">
+                    @response.Value.CreatedUtc.ToString("dd/MM/yy HH:mm:ss.ffff")
+                </Template>
+                <EditTemplate Context="response">
+                    <DetailedDatePicker ShowTime="true" ShowSeconds="true" ShowMilliseconds="true" @bind-Value="@response.Value.CreatedUtc" DateFormat="dd/MM/yy HH:mm:ss.fff" CssClass="w-100"/>
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>" Context="response" Filterable="false" Sortable="false" Title="Edit/Delete" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="response">
+                    <RadzenSplitButton Icon="edit" Size="ButtonSize.Small" Click="@(args => OnClickEditSplitButton(args, response))">
+                        <ChildContent>
+                            <RadzenSplitButtonItem Text="Edit Row" Value="EditRow" />
+                            <RadzenSplitButtonItem Text="Edit Page" Value="EditPage"  />
+                        </ChildContent>
+                    </RadzenSplitButton>
+                    
+                    <RadzenButton Icon="delete" Size="ButtonSize.Small" Click="@(_ => ConfirmDeleteRowAsync(response))"></RadzenButton>
+                </Template>
+                <EditTemplate Context="response">
+                    <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@((_) => SaveAsync(response))" Disabled="@(!IsResponseValid(response))" />
+                    <RadzenButton Icon="cancel" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Secondary" Click="@(async (_) => await CancelEditAsync(response))"></RadzenButton>
+                </EditTemplate>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+else
+{
+    <h2>no request selected!</h2>
+}
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <h4>Error: @_errorMessage</h4>
+}
+

@@ -1,0 +1,84 @@
+﻿@page "/tenants-overview"
+
+@inherits BasePageComponent
+
+@inject TenantService TenantService
+
+<div class="row pt-2">
+    <div class="col-md-10"><h1>Tenants Overview</h1></div>
+
+    <div class="col-md-2 text-right pr-4 pt-2">
+        <RadzenButton Click="@(() => NavigationManager.NavigateTo($"tenant/create"))" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="add" Text="Add Tenant" />
+    </div>
+</div>
+
+
+@if (TenantCollection == null)
+{
+    <RadzenCard class="h-100 w-100">
+        <div class="row h-100">
+            <div class="my-auto text-center w-100">
+                <ShowLoading />
+            </div>
+        </div>
+    </RadzenCard>
+}
+else if (TenantCollection.Tenants.Count == 0)
+{
+    <RadzenCard class="h-100 w-100">
+        <div class="row h-100">
+            <div class="my-auto text-center w-100">
+                <span>
+                    No Tenants Found.
+                </span>
+            </div>
+        </div>
+    </RadzenCard>
+}
+else
+{
+    <div class="d-flex flex-column w-100 flex-grow-1">
+        <RadzenDataList class="flex-grow-1 w-100" style=" overflow-y: auto; height:0;" WrapItems="true" AllowPaging="false" Data="@TenantCollection.Tenants" TItem="BaseTenantDto">
+            <Template Context="tenant">
+                <TenantOverviewCard Tenant="@tenant" />
+            </Template>
+        </RadzenDataList>
+
+        <div class="p-2 w-100">
+            <RadzenPager Count="_pageCount" PageSize="@_pageSize" PageNumbersCount="10" PageChanged="@(async (args) => await PageChangedAsync(args))" />
+        </div>
+    </div>
+}
+
+
+@code {
+    int _pageCount;
+
+    int _pageSize = 6;
+
+    TenantListDto TenantCollection { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await TenantService.GetTenantListAsync(0, _pageSize);
+
+        if (response.IsSuccessStatusCode)
+        {
+            TenantCollection = response.Content;
+            _pageCount = TenantCollection.TotalTenants;
+        }
+        
+        base.OnInitialized();
+    }
+
+    async Task PageChangedAsync(PagerEventArgs args)
+    {
+        var response = await TenantService.GetTenantListAsync(args.Skip, args.Top); 
+        
+        if (response.IsSuccessStatusCode)
+        {
+            TenantCollection = response.Content;
+            _pageCount = TenantCollection.TotalTenants;
+        }
+    }
+}

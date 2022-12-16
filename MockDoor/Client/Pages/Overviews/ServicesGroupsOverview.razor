@@ -1,0 +1,88 @@
+﻿@page "/service-groups-overview/{TenantId:int}"
+
+@inherits BasePageComponent
+
+@inject ServiceGroupService ServiceGroupService
+
+<PageTitle>Service groups overview - @(ServiceGroupCollection != null ? ServiceGroupCollection.TenantName : "loading...")</PageTitle>
+
+<div class="rz-background-color-primary-lighter" style=" margin-top: -1.1rem; margin-left: -2rem; width: 100vw !important; padding-bottom: 3px;">
+    <RadzenBreadCrumb Style="padding-left: 10px; padding-top: 5px;">
+        <RadzenBreadCrumbItem Path="home" Text="Home" Icon="home"/>
+        <RadzenBreadCrumbItem Text="Service Group Overview"/>
+    </RadzenBreadCrumb>
+</div>
+
+<div class="row pt-2">
+    <div class="col-md-10"><h1>Services Groups Overview - @(ServiceGroupCollection != null ? ServiceGroupCollection.TenantName : "loading...")</h1></div>
+
+    <div class="col-md-2 text-right pr-4 pt-2">
+        <RadzenButton Text="Add Group" 
+                      Click="@(() => NavigationManager.NavigateTo($"service-group/create/{ServiceGroupCollection.TenantId}"))" 
+                      ButtonStyle="ButtonStyle.Primary" 
+                      Size="ButtonSize.Small" Icon="add"  />
+    </div>
+</div>
+
+@if (ServiceGroupCollection == null)
+{
+    <div class="row no-gutters">
+        @for (int i = 0; i < _skeletonCount; i++)
+        {
+            <div Class="col-md-6" style=" height: 400px;">
+                <RadzenPanel Style="margin: 12px;">
+                    <ChildContent>
+                        <ShowLoading />
+                    </ChildContent>
+                </RadzenPanel>
+            </div>
+        }
+    </div>
+}
+else if (ServiceGroupCollection.ServiceGroups.Count == 0)
+{
+    <div class="row no-gutters" style="text-align: center; height: 100vh;">
+        <div class="col-sm-12 my-auto">
+            <RadzenCard Style="padding: 15px;">
+                <span>
+                    No service groups Found.
+                </span>
+
+                <RadzenButton Click="@(() => NavigationManager.NavigateTo($"service-group/create/{TenantId}"))" ButtonStyle="ButtonStyle.Primary">Create new service group</RadzenButton>
+            </RadzenCard>
+        </div>
+
+    </div>
+}
+else
+{
+    <div class="row no-gutters no-gutters">
+        @foreach (BasicServiceGroupDto serviceGroup in ServiceGroupCollection.ServiceGroups)
+        {
+            <div class="col-md-6">
+                <BasicServiceGroupOverview ServiceGroup="serviceGroup"></BasicServiceGroupOverview>
+            </div>
+        }
+    </div>
+}
+
+
+@code {
+    [Parameter]
+    public int TenantId { get; set; }
+
+
+    int _skeletonCount = 4;
+
+    ServiceGroupOverviewCollection ServiceGroupCollection { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await ServiceGroupService.GetServiceGroupsForTenantAsync(TenantId);
+
+        if (response.IsSuccessStatusCode) 
+        {
+            ServiceGroupCollection = response.Content; 
+        } 
+    }
+}

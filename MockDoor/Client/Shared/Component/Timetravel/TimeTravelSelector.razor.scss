@@ -1,0 +1,67 @@
+﻿.timetravel-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-content: stretch;
+}
+
+.timetravel-button {
+    flex: 0 0;
+}
+
+.timetravel-selected-time {
+    flex: 1 0;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+
+    .picker {
+        text-align: center;
+    }
+}
+
+.slider-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-content: stretch;
+
+    .slider {
+        flex: 1 0;
+    }
+
+    .button {
+    }
+}
+
+.overlay-container {
+    position: relative;
+}
+
+.overlay-box {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.overlay {
+    text-align: center;
+    pointer-events: none;
+    z-index: 9;
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Old versions of Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+
+    p {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+}

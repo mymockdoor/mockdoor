@@ -1,0 +1,232 @@
+﻿@page "/request/viewdetails/{TenantId:int}/{Id:int}"
+
+@inherits BasePageComponent
+
+<PageTitle>View Service Request Details</PageTitle>
+
+@if (_request == null)
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div>
+                <ShowLoading />
+            </div>
+        </HeaderTemplate>
+    </RadzenPanel>
+}
+else
+{
+    <RadzenPanel Style="margin: 15px;">
+        <HeaderTemplate>
+            <div style="width: 100%; text-align: left">
+                <h2>Service Request Details:</h2>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row">
+            <div class="col">
+            <RadzenCard>
+                <div class="row" style="margin-bottom: 48px">
+                    <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Endpoint (From Url)"/>
+                    </div>
+                    <div class="col">
+                        <p>@_request.FromUrl</p>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px">
+                    <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Query Parameters"/>
+                    </div>
+                    <div class="col">
+                        <div>
+                            <RadzenDataGrid class="mt-1"
+                                            Data="@_request.QueryParameters"
+                                            TItem="QueryParameterDto"
+                                            Density="Density.Compact"
+                                            AllowPaging="true" AllowSorting="true">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="QueryParameterDto" Property="Name" Title="Name"/>
+                                    <RadzenDataGridColumn TItem="QueryParameterDto" Property="Value" Title="Value"/>
+                                    <RadzenDataGridColumn TItem="QueryParameterDto" Property="OrderIndex" Title="Order"/>
+                                </Columns>
+                            </RadzenDataGrid>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" style="margin-bottom: 48px">
+                    <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Request Headers"/>
+                    </div>
+                    <div class="col">
+                        <div  @ref="_headerElementReference">
+                            <RadzenDataGrid class="mt-1"
+                                            Data="@_request.RequestHeaders"
+                                            TItem="ServiceRequestHeaderDto"
+                                            AllowColumnResize="true"
+                                            Density="Density.Compact"
+                                            AllowPaging="true" AllowSorting="true">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="ServiceRequestHeaderDto" Property="Name" Title="Name"/>
+                                    <RadzenDataGridColumn TItem="ServiceRequestHeaderDto" Property="Value" Title="Value (right click to copy)">
+                                        <Template Context="header">
+                                            <div @oncontextmenu=@(arg => ShowCopyHeaderContextMenu(arg, string.Join(';', header.Value))) @oncontextmenu:preventDefault="true">
+                                                @string.Join(';', header.Value)
+                                            </div>
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                </Columns>
+                            </RadzenDataGrid>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px">
+                    <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="From Body"/>
+                    </div>
+                    <div class="col">
+                        <pre style="max-height: 500px;">@_request.FromBody</pre>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px;">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Exact Url Match"/>
+                    </div>
+
+                    <div class="col">
+                        <ReadOnlyToggleState State="@_request.ExactUrlMatch" TrueText="True" FalseText="False" />
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px;">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Expect Authorisation Header"/>
+                    </div>
+
+                    <div class="col">
+                        <ReadOnlyToggleState State="@_request.ExpectAuthHeader" TrueText="True" FalseText="False" />
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px;">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Rest Type"/>
+                    </div>
+
+                    <div class="col">
+                        <p>@_request.RestType.ToString()</p>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px;">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Mock Behaviour"/>
+                    </div>
+
+                    <div class="col">
+                        <p>@_request.MockBehaviour.ToString()</p>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px;">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Simulation Time"/>
+                    </div>
+
+                    <div class="col">
+                        @if (_request.SimulateTime == null)
+                        {
+                            <p>[Not Set]</p>
+                        }
+                        else
+                        {
+                            <p>@_request.SimulateTime.Value.ToString("dd/MM/yy HH:mm:ss.ffff")</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px;">
+                    <div class="col-md-3" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Enabled"/>
+                    </div>
+
+                    <div class="col">
+                        <ReadOnlyToggleState State="@_request.Enabled" TrueText="True" FalseText="False" />
+                    </div>
+                </div>
+
+                <div class="row" style="margin-bottom: 48px">
+                    <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                        <RadzenLabel Text="Created Utc"/>
+                    </div>
+                    <div class="col">
+                        <p>@_request.CreatedUtc</p>
+                    </div>
+                </div>
+
+                <div class="d-flex">
+                    <div class="flex-grow-1"></div>
+                    <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Edit" Click="@(() => NavigationManager.NavigateTo($"request/edit/{TenantId}/{Id}"))" />
+                    
+                    <RadzenButton class="mr-1" ButtonType="ButtonType.Submit" Text="Cancel" Click="@(() => GoBackPage(true))"/>
+                    <div class="flex-grow-1"></div>
+                </div>
+            </RadzenCard>
+            </div>
+            </div>
+            
+            @if (_request.MockResponses?.Count > 0)
+            {
+                <div class="row mt-4">
+                    <div class="col">
+                        <RadzenCard>
+                            @if (_request.MockResponses?.Count > 0)
+                            {
+                                <h2>Mock Responses:</h2>
+                                <div style="height: 365px;">
+                                    <SimpleEntityList Items="@_request.MockResponses" ValueProperty="ID">
+                                        <StartListItem Context="mockResponseContext">
+                                            @if (mockResponseContext.Enabled)
+                                            {
+                                                <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Enabled" />
+                                            }
+                                            else
+                                            {
+                                                <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Disabled" />
+                                            }
+                                        </StartListItem>
+
+                                        <ListItem Context="mockResponseContext">
+                                            <span class="p-2 flex-grow-1">@mockResponseContext.Description.SafePrint(mockResponseContext.Code.ToString())</span>
+                                        </ListItem>
+
+                                        <EndListItem Context="mockResponseContext">
+                                            <div class="d-flex">
+                                                <RadzenButton class="mr-1" Click="@(() => NavigationManager.NavigateTo($"response/viewdetails/{_request.Id}/{mockResponseContext.Id}"))"
+                                                              ButtonStyle="ButtonStyle.Primary" Icon="preview" Size="ButtonSize.Small"/>
+                                                
+                                                <RadzenButton Click="@(() => NavigationManager.NavigateTo($"response/edit/{_request.Id}/{mockResponseContext.Id}"))"
+                                                              ButtonStyle="ButtonStyle.Primary" Icon="mode_edit" Size="ButtonSize.Small"/>
+                                            </div>
+                                        </EndListItem>
+                                    </SimpleEntityList>
+                                </div>
+                            }
+                        </RadzenCard>
+                    </div>
+                </div>
+            }
+        </ChildContent>
+    </RadzenPanel>
+}
+
+@code
+{
+    void ShowCopyHeaderContextMenu(MouseEventArgs args, string value) => ContextMenuService.Open(args, _ =>
+        @<RadzenMenu Click="@(() => OnCopyHeaderValueAsync(value))">
+            <RadzenMenuItem Text="Copy Header Value" />
+        </RadzenMenu>);
+}

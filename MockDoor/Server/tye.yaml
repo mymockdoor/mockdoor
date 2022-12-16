@@ -1,0 +1,23 @@
+# tye application configuration file
+# read all about it at https://github.com/dotnet/tye
+#
+# when you've given us a try, we'd love to know what you think:
+#    https://aka.ms/AA7q20u
+#
+name: mockdoor.server
+services:
+- name: mockdoor-server
+  project: MockDoor.Server.csproj
+  replicas: 1
+  env:
+  - name: DeploymentConfiguration__PathBase
+    value: /dev/mockdoor
+  bindings:
+    - port: 57791
+ingress:
+  - name: ingress
+    bindings:
+      - port: 44305
+    rules:
+      - path: /dev/mockdoor
+        service: mockdoor-server

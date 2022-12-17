@@ -1,0 +1,91 @@
+trigger:
+- main
+
+pool:
+  name: Win10VM
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- task: NuGetToolInstaller@1
+  displayName: 'Install nuget (if missing)'
+
+- task: NuGetCommand@2
+  displayName: 'NuGet Restore $(solution)'
+  inputs:
+    restoreSolution: '$(solution)'
+
+- task: VSBuild@1
+  displayName: 'Build $(solution)'
+  inputs:
+    solution: '$(solution)'
+    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
+    
+- task: VSTest@2
+  displayName: "Run xUnit tests"
+  inputs:
+    testSelector: 'testAssemblies'
+    testAssemblyVer2: |
+      **\MockDoor.*test*.dll
+      !**\ref\**
+      !**\*TestAdapter.dll
+      !**\obj\**
+    searchFolder: '$(System.DefaultWorkingDirectory)'
+    runTestsInIsolation: true
+    codeCoverageEnabled: true    
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: "Publish Mockdoor Server project"
+  inputs:
+    command: 'publish' 
+    projects: '**/**/MockDoor.Server.csproj'
+    publishWebProjects: false
+    arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)/MockdoorServer'
+    zipAfterPublish: true
+
+
+- task: AzureRmWebAppDeployment@4
+  displayName: "Deploy to md-pr-1"
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Free Trial(174b3741-0859-42d7-80c9-ebb853ee1af1)'
+    appType: 'webApp'
+    WebAppName: 'md-pr-1'
+    packageForLinux: '$(Build.ArtifactStagingDirectory)/MockdoorServer/*.zip'
+    enableCustomDeployment: true
+    DeploymentType: 'webDeploy'
+    RemoveAdditionalFilesFlag: true
+
+- task: carlowahlstedt.NewmanPostman.NewmanPostman.NewmanPostman@4
+  displayName: 'Newman - Postman'
+  inputs:
+    Contents: '**/MockDoor_Tenant_Tests.postman_collection.json'
+    environment: 'Postman/MockDoor-md-pr-1.postman_environment.json'
+    ignoreRedirect: false
+    bail: false
+    sslInsecure: false
+    reporters: 'cli,junit'
+    htmlExtraDarkTheme: false
+    htmlExtraLogs: false
+    htmlExtraTestPaging: false
+    reporterJUnitExport: Postman
+
+- task: PublishTestResults@2
+  displayName: 'Publish Test Results **/newman-*.xml'
+  inputs:
+    testResultsFiles: '**/newman-*.xml'
+    testRunTitle: 'Postman tests'
+
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/MockdoorServer/'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'

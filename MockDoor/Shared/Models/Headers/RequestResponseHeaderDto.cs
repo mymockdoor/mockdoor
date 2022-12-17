@@ -13,7 +13,7 @@ namespace MockDoor.Shared.Models.Headers
         [MaxLength(150, ErrorMessage = "Header name exceeded max length {0}")]
         public string Name { get; set; }
 
-        [MaxLength(150, ErrorMessage = "Header value exceeded max length {0}")]
+        [MaxLength(5000, ErrorMessage = "Header value exceeded max length {0}")]
         public string Value { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

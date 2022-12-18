@@ -33,8 +33,15 @@ namespace MockDoor.Shared.Helper
         {
             var stringContent = new StringContent(content);
 
-            if(contentType != null)
+            if (contentType != null)
+            {
+                //workaround to bug where utf-8 added to content type and breaking forwarded requests
+                if (contentType.Contains("utf-8"))
+                {
+                    contentType = contentType.Replace("; charset=utf-8", "");
+                }
                 stringContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            }
             else
                 stringContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 

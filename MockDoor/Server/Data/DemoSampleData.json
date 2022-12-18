@@ -63,7 +63,7 @@
               "name": "Orders Processor",
               "enabled": true,
               "registeredServiceGroupId": 0,
-              "targetUrl": "https://localhost:7054",
+              "targetUrl": "https://localhost:7054/",
               "fakeDelay": 0,
               "proxyMode": true,
               "randomiseMockResult": false,
@@ -71,7 +71,12 @@
               "headersMode": 1,
               "passThroughTenant": false,
               "headers": [
-
+                {
+                  "name": "Authorization",
+                  "enabled": true,
+                  "incoming": false,
+                  "outgoing": true
+                }
               ]
             }
           ],
@@ -103,7 +108,12 @@
               "headersMode": 1,
               "passThroughTenant": false,
               "headers": [
-
+                {
+                  "name": "Authorization",
+                  "enabled": true,
+                  "incoming": false,
+                  "outgoing": true
+                }
               ]
             },
             {
@@ -123,7 +133,12 @@
               "headersMode": 1,
               "passThroughTenant": false,
               "headers": [
-
+                {
+                  "name": "Authorization",
+                  "enabled": true,
+                  "incoming": false,
+                  "outgoing": true
+                }
               ]
             },
             {
@@ -258,7 +273,7 @@
               "name": "Orders Processor",
               "enabled": true,
               "registeredServiceGroupId": 0,
-              "targetUrl": "https://localhost:7054",
+              "targetUrl": "https://localhost:7054/",
               "fakeDelay": 0,
               "proxyMode": true,
               "randomiseMockResult": false,
@@ -266,7 +281,12 @@
               "headersMode": 1,
               "passThroughTenant": false,
               "headers": [
-
+                {
+                  "name": "Authorization",
+                  "enabled": true,
+                  "incoming": false,
+                  "outgoing": true
+                }
               ]
             }
           ],
@@ -298,7 +318,12 @@
               "headersMode": 1,
               "passThroughTenant": false,
               "headers": [
-
+                {
+                  "name": "Authorization",
+                  "enabled": true,
+                  "incoming": false,
+                  "outgoing": true
+                }
               ]
             },
             {

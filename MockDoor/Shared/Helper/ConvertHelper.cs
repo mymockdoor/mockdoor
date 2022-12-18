@@ -40,6 +40,10 @@ namespace MockDoor.Shared.Helper
                 {
                     contentType = contentType.Replace("; charset=utf-8", "");
                 }
+                else if (contentType.Contains("us-ascii"))
+                {
+                    contentType = contentType.Replace("; charset=us-ascii", "");
+                }
                 stringContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
             }
             else

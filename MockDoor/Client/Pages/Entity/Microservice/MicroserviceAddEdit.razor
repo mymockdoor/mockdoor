@@ -46,7 +46,7 @@ else
         <ChildContent>
             <div class="row">
                 <div class="col">
-                    <RadzenTemplateForm TItem="MicroserviceResultDto" Data=@_microservice Submit=@SaveAsync @onkeypress:preventDefault>
+                    <RadzenTemplateForm TItem="MicroserviceResultDto" Data=@_microservice Submit=@SaveAsync>
                         <RadzenFieldset Text="Service group information">
                             <h4 Style="margin-bottom: 20px">Parent Service Group ID: @_microservice.RegisteredServiceGroupId</h4>
 

@@ -32,7 +32,7 @@ else
         <ChildContent>
             <div class="row">
                 <div class="col">
-                    <RadzenTemplateForm TItem="MockResponseDto" Data=@_response Submit=@SaveAsync @onkeypress:preventDefault>
+                    <RadzenTemplateForm TItem="MockResponseDto" Data=@_response Submit=@SaveAsync>
                         <RadzenFieldset Text="Mock Response information">
 
                             <h4 style="margin-bottom: 20px;">Parent Request ID: @_response.ServiceRequestId</h4>

@@ -390,5 +390,10 @@
       "path": "customer2",
       "simulateTime": null
     }
-  ]
+  ],
+  "appliedMigrations": [
+    "20221116210252_InitialCommit"
+  ],
+  "databaseType": "Sqlite",
+  "codeVersion": "V0.40.435"
 }

@@ -56,13 +56,12 @@ else if (ServiceGroupCollection.ServiceGroups.Count == 0)
 }
 else
 {
-    <div class="row no-gutters no-gutters">
-        @foreach (BasicServiceGroupDto serviceGroup in ServiceGroupCollection.ServiceGroups)
-        {
-            <div class="col-md-6">
+    <div class="row no-gutters">
+         <RadzenDataList class="flex-grow-1 w-100" style=" overflow-y: auto;" WrapItems="true" AllowPaging="false" Data="@ServiceGroupCollection.ServiceGroups" TItem="BasicServiceGroupDto">
+            <Template Context="serviceGroup">
                 <BasicServiceGroupOverview ServiceGroup="serviceGroup"></BasicServiceGroupOverview>
-            </div>
-        }
+            </Template>
+        </RadzenDataList>
     </div>
 }
 

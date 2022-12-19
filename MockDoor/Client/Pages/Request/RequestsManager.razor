@@ -119,7 +119,11 @@
         <RadzenCard class="w-100">
             @if (_selectedMockResponses?.Count() > 0)
             {
-                <EditableResponseDataGrid RequestId=@(_selectedServiceRequest?.FirstOrDefault()?.Id??0) DataSource="@(_selectedMockResponses)" Density="_density" />
+                <EditableResponseDataGrid RequestId=@(_selectedServiceRequest?.FirstOrDefault()?.Id ?? 0)
+                                          DataSource="@(_selectedMockResponses)" 
+                                          Density="_density" 
+                                          CurrentSimulationTime="@(_selectedServiceRequest?.FirstOrDefault()?.SimulateTime)"
+                                          RequestUpdated="@OnRequestUpdatedAsync" />
             }
             else{
                 <h2>No request responses found</h2>
@@ -155,7 +159,7 @@
         }
     }
 
-    List<MockResponseDto> _selectedMockResponses = new List<MockResponseDto>();
+    List<MockResponseDto> _selectedMockResponses = new ();
 
     string _errorMessage;
     
@@ -201,6 +205,27 @@
     {
         await LocalStorage.SetItemAsync(UiConstants.MockTestingPopulateKey, request);
         NavigationManager.NavigateTo($"mock-testing?microserviceId={request.MicroserviceId}");
+    }
+
+    private async Task OnRequestUpdatedAsync(int requestId)
+    {
+        var updatedRequestResponse = await RequestService.GetRequestAsync(requestId);
+
+        if (updatedRequestResponse.IsSuccessStatusCode)
+        {
+            int index = _serviceRequests.FindIndex(r => r.Id == updatedRequestResponse.Content.Id);
+
+            if (index >= 0 && index < _serviceRequests.Count)
+            {
+                _serviceRequests[index] = updatedRequestResponse.Content;
+                if (_selectedServiceRequest.FirstOrDefault()?.Id == requestId)
+                {
+                    _selectedServiceRequest[0] = updatedRequestResponse.Content;
+                }
+                await RequestGrid.Reload();
+                StateHasChanged();
+            }
+        }
     }
 
 }

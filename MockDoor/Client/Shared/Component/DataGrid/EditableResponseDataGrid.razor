@@ -102,6 +102,17 @@
                     <DetailedDatePicker ShowTime="true" ShowSeconds="true" ShowMilliseconds="true" @bind-Value="@response.Value.CreatedUtc" DateFormat="dd/MM/yy HH:mm:ss.fff" CssClass="w-100"/>
                 </EditTemplate>
             </RadzenDataGridColumn>
+            
+            <RadzenDataGridColumn Width="200px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.CreatedUtc" Title="Created">
+                <Template Context="response">
+                    <RadzenButton Text="@(GetSetSimulateButtonText(response))"
+                                  Size="ButtonSize.ExtraSmall"
+                                  class="w-100"
+                                  ButtonStyle="@(CurrentSimulatedResponseId() == response.Value.Id ? ButtonStyle.Secondary : ButtonStyle.Primary)"
+                                  Click="@(async () => await SetResponseAsSimulationTimeAsync(response.Value))"
+                                  IsBusy="@_busy" />
+                </Template>
+            </RadzenDataGridColumn>
 
             <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>" Context="response" Filterable="false" Sortable="false" Title="Edit/Delete" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="response">

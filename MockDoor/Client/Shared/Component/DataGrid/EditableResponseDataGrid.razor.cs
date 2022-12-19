@@ -21,7 +21,10 @@ namespace MockDoor.Client.Shared.Component.DataGrid
 
         [Inject]
         ResponseService ResponseService { get; set; }
-
+        
+        [Inject]
+        public SimulateTimeService SimulateTimeService { get; set; }
+        
         [Parameter]
         public int RequestId { get; set; }
         
@@ -30,6 +33,12 @@ namespace MockDoor.Client.Shared.Component.DataGrid
 
         [Parameter]
         public List<MockResponseDto> DataSource { get; set; }
+        
+        [Parameter]
+        public DateTime? CurrentSimulationTime { get; set; }
+        
+        [Parameter]
+        public EventCallback<int> RequestUpdated { get; set; }
 
         RadzenDataGrid<SnapshotEntity<MockResponseDto>> _responseGrid;
 
@@ -39,6 +48,7 @@ namespace MockDoor.Client.Shared.Component.DataGrid
 
         string _errorMessage = null;
         int _minRows = 3, _maxRows = 25;
+        private bool _busy;
 
         private bool IsEditing()
         {
@@ -89,6 +99,8 @@ namespace MockDoor.Client.Shared.Component.DataGrid
                 _selectedMockResponses.Remove(responseDto);
 
                 _mockResponses.Add(new SnapshotEntity<MockResponseDto>(response.Content));
+                
+                await RequestUpdated.InvokeAsync(RequestId);
                 await _responseGrid.Reload();
                 return true;
             }
@@ -319,6 +331,56 @@ namespace MockDoor.Client.Shared.Component.DataGrid
                 return false;
 
             return response.Value.IsValid();
+        }
+        
+        private async Task SetResponseAsSimulationTimeAsync(MockResponseDto mockResponse)
+        {
+            _busy = true;
+            var updateResponse =
+                await SimulateTimeService.SetSimulateTime(RequestId, mockResponse.Id == CurrentSimulatedResponseId() ?
+                                                                                null : mockResponse.CreatedUtc,
+                    TimeTravelScope.Request);
+
+            if (updateResponse.IsSuccessStatusCode)
+            {
+                CurrentSimulationTime = mockResponse.CreatedUtc;
+                await RequestUpdated.InvokeAsync(RequestId);
+                await _responseGrid.Reload();
+                StateHasChanged();
+            }
+
+            _busy = false;
+        }
+
+        private string GetSetSimulateButtonText(SnapshotEntity<MockResponseDto> response)
+        {
+            return CurrentSimulatedResponseId() == response.Value.Id
+                ? "Clear Current response"
+                : "Set as current response";
+        }
+
+        private int? CurrentSimulatedResponseId()
+        {
+            if (CurrentSimulationTime == null)
+                return null;
+            
+            var resolvedSimulateTime = CurrentSimulationTime?.AddSeconds(1);
+
+            var enabledResponses = _mockResponses.Where(r => r.Value.Enabled)
+                .Where(er => resolvedSimulateTime == null || er.Value.CreatedUtc < resolvedSimulateTime)
+                .ToList();
+            
+            var filteredAndOrderedResponses = enabledResponses
+                                                            .OrderBy(er => er.Value.Priority)
+                                                            .ThenByDescending(er => er.Value.CreatedUtc)
+                                                            .ToList();
+
+            if (filteredAndOrderedResponses.Count > 0)
+            {
+                return filteredAndOrderedResponses.First().Value.Id;
+            }
+
+            return null;
         }
     }
 }

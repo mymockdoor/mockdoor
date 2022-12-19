@@ -11,11 +11,11 @@ namespace MockDoor.Client.Services
         {
         }
 
-        public async Task<HttpServiceResult> SetSimulateTime(int id, DateTime? datetime, TimeTravelScope scope)
+        public async Task<HttpServiceResult> SetSimulateTime(int id, DateTime? datetime, TimeTravelScope scope, string successNotification = null, string errorNotification = null)
         {
             var response = await SafePostAsync($"api/simulatetime/setsimulate/{id}", new UpdateTimeTravelDto() { Time = datetime, Scope = scope }, $"Failed to set simulation time on scope={scope}, id={id}");
 
-            return await HandleResponseAsync(response);
+            return await HandleResponseAsync(response, errorNotification, successNotification);
         }
 
         public async Task<HttpServiceResult<TimeTravelDto>> GetSimulateTimes(TimeTravelScope scope, int id)

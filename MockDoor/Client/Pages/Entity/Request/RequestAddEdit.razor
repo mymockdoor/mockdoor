@@ -64,6 +64,13 @@ else
                                                                              @bind-BadRequestResult="_errorsOnSave" 
                                                                              ParentObjectContext="@_newQueryParam"
                                                                              EnableClientSideValidation="true" />
+
+                                    <RadzenButton class="mx-1"
+                                                  ButtonType="ButtonType.Submit"
+                                                  Text="Add"
+                                                  Click="@AddQueryParam"
+                                                  Disabled="@(string.IsNullOrWhiteSpace(_newQueryParam.Name) || string.IsNullOrWhiteSpace(_newQueryParam.Value))"
+                                                  Style="width: 100px;"/>
                                 </div>
                                 <div>
                                     <RadzenDataGrid @ref="_queryParamGrid" class="mt-1"

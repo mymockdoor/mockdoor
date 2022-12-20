@@ -1,7 +1,9 @@
 Mockdoor Licence
 ================
 # Usage
-This Licence permits the use of Mockdoor for personal use, for free without additional limitation provided it is not used commercially or in generating money. This free personal use licence does not permit the distribution of sub licencing of this software in any way.
+This Licence permits the use of Mockdoor for personal use, for free without additional limitation provided it is not used commercially. This free personal use licence does not permit the distribution or sub licencing of this software in any way. 
+
+Personal use is defined as "use by an individual person for themselves only".
 
 For commercial and any other use not covered under "personal use" this Licence grants permission to use Mockdoor for free within the free pricing bank described in the "Pricing" Document. Usage above the free pricing thresholds requires arranging a paid for licence based on which thresholds you meet (see "Pricing" Document for more details).
 

@@ -53,7 +53,9 @@ You can open Mockdoor at [https://localhost:44304/](https://localhost:44304/)
 Mockdoor should open automatically but you can manually open Mockdoor at [https://localhost:44304/](https://localhost:44304/)
 
 # Pricing and Licence
-For the current preview version (Pre V1) all tiers are **Free**. See [Pricing](Pricing.md) for more details on planned tiers and pricing.
+For the current preview version (Pre V1) all tiers are **Free**. For personal use Mockdoor will remain free even after release but donations should be approciated.
+
+See [Pricing](Pricing.md) for more details on planned tiers and pricing.
 
 The Licence agreement can be view [here](LICENCE.md)
 

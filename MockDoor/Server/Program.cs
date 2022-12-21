@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Mockdoor.Data.Sqlite.Services;
 using Mockdoor.Data.SqlServer.Services;
 using MockDoor.Abstractions.ConfigurationServices;
@@ -87,6 +88,10 @@ builder.Services.AddMvc()
     .AddControllersAsServices()
     .AddNewtonsoftJson();
 
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 
@@ -124,6 +129,22 @@ app.Use(async (context, next) =>
     await next();
 });
 
+if (deploymentConfiguration.PathBase != null)
+{
+    app.UsePathBase(deploymentConfiguration.PathBase);
+    app.Use((context, next) =>
+    {
+        context.Request.PathBase = new PathString($"/{deploymentConfiguration.PathBase.TrimStart('/')}");
+        return next();
+    });
+    app.Use(async (context, next) =>
+    {
+        context.Response.Headers.TryAdd(HttpConstants.CustomBasePathHeaderKey, deploymentConfiguration.PathBase);
+
+        await next();
+    });
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -141,6 +162,26 @@ else
     }
 }
 
+var basePath = deploymentConfiguration.PathBase ?? "/";
+app.UseSwagger(c =>
+{
+    c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+    {
+        if (!httpReq.Headers.ContainsKey("X-Original-Host"))
+            return;
+
+        var serverUrl = $"{httpReq.Headers["X-Original-Proto"]}://" + $"{httpReq.Headers["X-Original-Host"]}/" + $"{httpReq.Headers["X-Original-Prefix"]}";
+
+        Console.WriteLine(serverUrl);
+            
+        swaggerDoc.Servers = new List<OpenApiServer>()
+        {
+            new OpenApiServer { Url = serverUrl }
+        };
+    });
+});
+app.UseSwaggerUI(c => c.SwaggerEndpoint($"{basePath.TrimEnd('/')}/swagger/v1/swagger.json", "Mockdoor API v0.50.03"));
+
 if (deploymentConfiguration.ForceHttps)
 {
     app.UseHttpsRedirection();
@@ -150,17 +191,6 @@ app.UseCors(cpb => cpb.AllowAnyMethod()
     .AllowAnyHeader()
     .SetIsOriginAllowed(_ => true)
     .AllowCredentials());
-
-if (deploymentConfiguration.PathBase != null)
-{
-    app.UsePathBase(deploymentConfiguration.PathBase);
-    app.Use(async (context, next) =>
-    {
-        context.Response.Headers.TryAdd(HttpConstants.CustomBasePathHeaderKey, deploymentConfiguration.PathBase);
-
-        await next();
-    });
-}
 
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();

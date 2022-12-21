@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MockDoor.Abstractions.Repositories;
@@ -7,6 +8,7 @@ using MockDoor.Shared.Constants;
 using MockDoor.Shared.Helper;
 using MockDoor.Shared.Models.Microservice;
 using MockDoor.Shared.Models.Utility;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace MockDoor.Api.Controllers.AdminControllers
 {
@@ -25,6 +27,7 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet("{microserviceId}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(MicroserviceResultDto))]
         public async Task<ActionResult<MicroserviceResultDto>> Get(int microserviceId)
         {
             _logger.LogInformation("Getting microservice: {MicroserviceId}", microserviceId);

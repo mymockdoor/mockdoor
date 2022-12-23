@@ -217,12 +217,12 @@
 
             if (index >= 0 && index < _serviceRequests.Count)
             {
-                _serviceRequests[index] = updatedRequestResponse.Content;
-                if (_selectedServiceRequest.FirstOrDefault()?.Id == requestId)
-                {
-                    _selectedServiceRequest[0] = updatedRequestResponse.Content;
-                }
+                updatedRequestResponse.Content.CopyTo( _serviceRequests[index]);
+                updatedRequestResponse.Content.CopyTo(_selectedServiceRequest[0]);
+                
+                await RequestGrid.UpdateRow(_selectedServiceRequest[0]);
                 await RequestGrid.Reload();
+                _selectedMockResponses = _selectedServiceRequest[0].MockResponses;
                 StateHasChanged();
             }
         }

@@ -48,7 +48,7 @@ namespace MockDoor.Client.Shared.Component.DataGrid
 
         string _errorMessage = null;
         int _minRows = 3, _maxRows = 25;
-        private bool _busy;
+        private bool _busy, _updating;
 
         private bool IsEditing()
         {
@@ -65,54 +65,58 @@ namespace MockDoor.Client.Shared.Component.DataGrid
 
         private async Task<bool> SaveChangesAsync()
         {
+            _updating = true;
             var response = await ResponseService.UpdateResponsesOnRequestAsync(RequestId, _mockResponses.Select(r => r.Value));
 
             if (!response.IsSuccessStatusCode)
             {
                 _errorMessage = response.Message;
+                
+                _updating = false;
                 return false;
             }
-            else if (response.Content == null)
+            
+            if (response.Content == null)
             {
                 _errorMessage = "Error request not found after updating mock responses";
+                _updating = false;
                 return false;
             }
-            else
-            {
-                _errorMessage = null;
-                _mockResponses.Clear();
-                _mockResponses.AddRange(response.Content.MockResponses.Select(rr => new SnapshotEntity<MockResponseDto>(rr)));
-                _selectedMockResponses.Clear();
-                await _responseGrid.Reload();
-                return true;
-            }
+            
+            _errorMessage = null;
+            _mockResponses.Clear();
+            _mockResponses.AddRange(response.Content.MockResponses.Select(rr => new SnapshotEntity<MockResponseDto>(rr)));
+            _selectedMockResponses.Clear();
+            await _responseGrid.Reload();
+            _updating = false;
+            return true;
         }
 
         private async Task<bool> SaveChangeAsync(SnapshotEntity<MockResponseDto> responseDto)
         {
+            _updating = true;
             var response = await ResponseService.UpdateResponseOnRequestAsync(RequestId, responseDto.Value);
 
             if (response.IsSuccessStatusCode)
             {
                 _errorMessage = null;
-                _mockResponses.Remove(responseDto);
-                _selectedMockResponses.Remove(responseDto);
 
-                _mockResponses.Add(new SnapshotEntity<MockResponseDto>(response.Content));
+                await _responseGrid.UpdateRow(responseDto);
                 
                 await RequestUpdated.InvokeAsync(RequestId);
-                await _responseGrid.Reload();
+                
+                _updating = false;
                 return true;
             }
-            else
-            {
-                _errorMessage = response.Message;
-                return false;
-            }
+
+            _updating = false;
+            _errorMessage = response.Message;
+            return false;
         }
 
         private async Task DeleteResponseAsync(SnapshotEntity<MockResponseDto> responseDto)
         {
+            _updating = true;
             var response = await ResponseService.DeleteResponseAsync(responseDto.Value.Id);
 
             if (response)
@@ -121,8 +125,11 @@ namespace MockDoor.Client.Shared.Component.DataGrid
                 _mockResponses.Remove(responseDto);
                 _selectedMockResponses.Remove(responseDto);
 
+                await RequestUpdated.InvokeAsync(RequestId);
                 await _responseGrid.Reload();
+                StateHasChanged();
             }
+            _updating = false;
         }
 
         private int CalculateSize(string value)
@@ -147,12 +154,6 @@ namespace MockDoor.Client.Shared.Component.DataGrid
             _mockResponses = DataSource.Select(rr => new SnapshotEntity<MockResponseDto>(rr)).ToList();
         }
 
-        void OnUpdateRow(SnapshotEntity<MockResponseDto> mockResponse)
-        {
-            mockResponse.CommitChanges();
-            _errorMessage = null;
-        }
-
         async Task DuplicateSelectedAsync()
         {
             if (_selectedMockResponses?.Count > 0)
@@ -175,17 +176,7 @@ namespace MockDoor.Client.Shared.Component.DataGrid
                     duplicateResponse.Value.Body = duplicateResponse.Value.Body == null ? "copy" : duplicateResponse.Value.Body + " - copy";
                     duplicateResponse.CommitChanges();
 
-                    _mockResponses.Add(duplicateResponse);
-                }
-
-                await _responseGrid.Reload();
-                StateHasChanged();
-
-                _selectedMockResponses.Clear();
-                foreach (var duplicateResponse in duplicateResponses)
-                {
-                    await EditRowAsync(duplicateResponse);
-                    await _responseGrid.SelectRow(duplicateResponse);
+                    await _responseGrid.InsertRow(duplicateResponse);
                 }
             }
         }
@@ -207,13 +198,27 @@ namespace MockDoor.Client.Shared.Component.DataGrid
 
             if (confirmed != null && confirmed.Value)
             {
-                await DeleteSelectedAsync(new List<SnapshotEntity<MockResponseDto>>() { mockResponse });
-
+                await DeleteSelectedAsync(mockResponse);
+                
                 if (mockResponse.Value.Id > 0)
                 {
                     await DeleteResponseAsync(mockResponse);
                 }
             }
+        }
+        
+        async Task DeleteSelectedAsync(SnapshotEntity<MockResponseDto> itemToDelete)
+        {
+            if (_responseGrid.IsRowInEditMode(itemToDelete))
+            {
+                await CancelEditAsync(itemToDelete);
+            }
+
+            _mockResponses.Remove(itemToDelete);
+            
+            _selectedMockResponses.Clear();
+
+            _errorMessage = null;           
         }
 
         async Task DeleteSelectedAsync(List<SnapshotEntity<MockResponseDto>> itemsToDelete)
@@ -229,8 +234,6 @@ namespace MockDoor.Client.Shared.Component.DataGrid
             }
 
             _selectedMockResponses.Clear();
-
-            await _responseGrid.Reload();
 
             _errorMessage = null;           
         }
@@ -280,15 +283,19 @@ namespace MockDoor.Client.Shared.Component.DataGrid
 
         async Task SaveAsync(SnapshotEntity<MockResponseDto> response)
         {
-            var saved = await SaveChangeAsync(response);
-            if(saved)
-                await SaveRowAsync(response);
+            await SaveRowAsync(response);
         }
 
         async Task SaveRowAsync(SnapshotEntity<MockResponseDto> response)
         {
             response.CommitChanges();
-            await _responseGrid.UpdateRow(response);
+            await OnUpdateRow(response);
+        }
+        
+        async Task OnUpdateRow(SnapshotEntity<MockResponseDto> mockResponse)
+        {
+            await SaveChangeAsync(mockResponse);
+            _errorMessage = null;
         }
 
         async Task OnClickEditSplitButton(RadzenSplitButtonItem item, SnapshotEntity<MockResponseDto> response)

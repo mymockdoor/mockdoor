@@ -28,7 +28,7 @@
         EditMode="DataGridEditMode.Multiple" 
         GridLines="DataGridGridLines.Both"
         FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
-        RowUpdate="@OnUpdateRow"
+        IsLoading="_updating"
         Value=@_selectedMockResponses>
          <EmptyTemplate>
             <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">No records to display.</p>

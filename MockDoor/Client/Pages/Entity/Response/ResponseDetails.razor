@@ -115,6 +115,15 @@ else
                     
                     <div class="row" style="margin-bottom: 48px">
                         <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                            <RadzenLabel Text="Latency" />
+                        </div>
+                        <div class="col">
+                            <p>@_response.Latency.ToString("mm':'ss':'fffff")</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col-md-3 align-right" style="line-height: 2.2rem;">
                             <RadzenLabel Text="Created Utc" />
                         </div>
                         <div class="col">

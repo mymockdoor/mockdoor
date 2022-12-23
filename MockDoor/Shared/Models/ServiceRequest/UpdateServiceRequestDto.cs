@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using MockDoor.Shared.Models.Enum;
 using MockDoor.Shared.Models.Headers;
 using MockDoor.Shared.Models.QueryParameters;
@@ -8,10 +9,10 @@ using MockDoor.Shared.Models.Response;
 
 namespace MockDoor.Shared.Models.ServiceRequest
 {
-    public class UpdateServiceRequestDto
+    public class UpdateServiceRequestDto : IValidatableObject
     {
         [Required(AllowEmptyStrings = true)]
-        [MaxLength(500)]
+        [MaxLength(500, ErrorMessage = "Endpoint (From Url) too long. Maximum length is 500")]
         public string FromUrl { get; set; } = string.Empty;
 
         public bool ExactUrlMatch { get; set; }
@@ -27,7 +28,8 @@ namespace MockDoor.Shared.Models.ServiceRequest
         public DateTime? SimulateTime { get; set; }
 
         public TimeSpan? Ttl { get; set; }
-
+        
+        [MaxLength(10_000_000, ErrorMessage = "Body exceeded max length {0}")]
         public string FromBody { get; set; }
 
         public DateTime? CreatedUtc { get; set; }
@@ -37,5 +39,10 @@ namespace MockDoor.Shared.Models.ServiceRequest
         public List<QueryParameterDto> QueryParameters { get; set; }
         
         public List<ServiceRequestHeaderDto> RequestHeaders { get; set; }
+        
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            return Enumerable.Empty<ValidationResult>();
+        }
     }
 }

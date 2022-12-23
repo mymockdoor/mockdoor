@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MockDoor.Abstractions.MockServices;
 using MockDoor.Shared;
 using MockDoor.Shared.Constants;
 using MockDoor.Shared.Models.Timetravel;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace MockDoor.Api.Controllers.AdminControllers
 {
@@ -22,6 +24,9 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPost("setsimulate/{id}")]
+        [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> SetSimulateAsync(int id, [FromBody] UpdateTimeTravelDto? updateTimeTravelDto)
         {
             if (id <= 0)
@@ -38,10 +43,13 @@ namespace MockDoor.Api.Controllers.AdminControllers
                 return Ok();
             }
 
-            return BadRequest();
+            return BadRequest(ErrorMessageConstants.InvalidTimeScopeType);
         }
 
         [HttpGet("times/{scope}/{id}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(TimeTravelDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> GetTimesAsync(TimeTravelScope scope, int id)
         {
             if (id <= 0)
@@ -50,7 +58,7 @@ namespace MockDoor.Api.Controllers.AdminControllers
             var serviceRequestDto = await _simulateTimeService.GetTimes(scope, id);
 
             if (serviceRequestDto == null)
-                return NotFound();
+                return BadRequest(ErrorMessageConstants.InvalidTimeScopeType);
 
             return Ok(serviceRequestDto);
         }

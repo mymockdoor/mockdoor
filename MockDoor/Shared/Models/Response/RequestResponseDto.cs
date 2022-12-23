@@ -37,6 +37,7 @@ namespace MockDoor.Shared.Models.Response
 
         public int ServiceRequestId { get; set; }
 
+        [RegularExpression(@"^(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)(?:\.(\d+))?$")]
         public TimeSpan Latency { get; set; }
 
         public List<MockResponseHeaderDto> Headers { get; set; } = new ();

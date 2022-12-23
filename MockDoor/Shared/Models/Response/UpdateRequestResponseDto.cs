@@ -25,6 +25,9 @@ namespace MockDoor.Shared.Models.Response
 
         public bool Enabled { get; set; } = true;
 
+        [RegularExpression(@"^(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)(?:\.(\d+))?$")]
+        public TimeSpan Latency { get; set; }
+
         public DateTime? CreatedUtc { get; set; }
 
         public List<MockResponseHeaderDto> Headers { get; set; } = new ();

@@ -242,6 +242,7 @@ else
                                     <DetailedDatePicker ShowTime="true"
                                                         ShowSeconds="true"
                                                         ShowMilliseconds="true"
+                                                        SingleRow="true"
                                                         Value="@_request.CreatedUtc"
                                                         ValueChanged="@(arg => { _request.CreatedUtc = arg; _createdDirty = true; })"
                                                         DateFormat="dd/MM/yy HH:mm:ss.fff"

@@ -122,7 +122,7 @@ namespace MockDoor.Data.Repositories
             var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.ID == newServiceGroupDto.TenantId);
 
             if (tenant == null)
-                throw new Exception("Error no tenant exists for this service");
+                return null;
 
             var newServiceGroup = new ServiceGroup()
             {

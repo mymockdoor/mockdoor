@@ -58,4 +58,6 @@ public static class ErrorMessageConstants
     public const string FailedToCreate = "Failed to create";
     
     public const string SimulateTimeModelWasNotProvided = "Simulate time model was not provided";
+    
+    public const string InvalidTimeScopeType = "Invalid time scope provided";
 }

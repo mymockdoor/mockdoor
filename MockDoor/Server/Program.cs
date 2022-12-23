@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Hosting.StaticWebAssets;
+﻿using Blazored.LocalStorage.JsonConverters;
+using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Mockdoor.Data.Sqlite.Services;
@@ -90,7 +91,11 @@ builder.Services.AddMvc()
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.MapType<TimeSpan>(() => new OpenApiSchema { Type = "string", Format = "0.00:00:00", Reference = null, Nullable = false });
+    c.MapType<TimeSpan?>(() => new OpenApiSchema { Type = "string", Format = "0.00:00:00", Reference = null, Nullable = true });
+});
 
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
@@ -129,21 +134,25 @@ app.Use(async (context, next) =>
     await next();
 });
 
-if (deploymentConfiguration.PathBase != null)
+var basePath = deploymentConfiguration.PathBase ?? "/";
+if (deploymentConfiguration.PathBase == null)
 {
-    app.UsePathBase(deploymentConfiguration.PathBase);
-    app.Use((context, next) =>
-    {
-        context.Request.PathBase = new PathString($"/{deploymentConfiguration.PathBase.TrimStart('/')}");
-        return next();
-    });
-    app.Use(async (context, next) =>
-    {
-        context.Response.Headers.TryAdd(HttpConstants.CustomBasePathHeaderKey, deploymentConfiguration.PathBase);
-
-        await next();
-    });
+    deploymentConfiguration.PathBase = "/";
 }
+
+app.UsePathBase(basePath);
+app.Use((context, next) =>
+{
+    context.Request.PathBase = new PathString($"/{basePath.TrimStart('/')}");
+    return next();
+});
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.TryAdd(HttpConstants.CustomBasePathHeaderKey, basePath);
+
+    await next();
+});
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -162,7 +171,6 @@ else
     }
 }
 
-var basePath = deploymentConfiguration.PathBase ?? "/";
 app.UseSwagger(c =>
 {
     c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
@@ -180,7 +188,7 @@ app.UseSwagger(c =>
         };
     });
 });
-app.UseSwaggerUI(c => c.SwaggerEndpoint($"{basePath.TrimEnd('/')}/swagger/v1/swagger.json", "Mockdoor API v0.50.03"));
+app.UseSwaggerUI(c => c.SwaggerEndpoint($"{basePath.TrimEnd('/')}/swagger/v1/swagger.json", $"Mockdoor API {SharedConstants.MockdoorVersion}"));
 
 if (deploymentConfiguration.ForceHttps)
 {

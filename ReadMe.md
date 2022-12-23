@@ -28,7 +28,7 @@ Once running navigate to http://localhost:44304
 ## Additional Resources
 - Dockhub: [https://hub.docker.com/r/mockdoor/server](https://hub.docker.com/r/mockdoor/server)
 - Wiki: [https://wiki.mymockdoor.com/](https://wiki.mymockdoor.com/)
-- API Documentation: [https://app.swaggerhub.com/apis-docs/MOCKDOOR/mockdoor_server/0.50.03](https://app.swaggerhub.com/apis-docs/MOCKDOOR/mockdoor_server/0.50.03)
+- API Documentation: [https://app.swaggerhub.com/apis-docs/MOCKDOOR/mockdoor_server/](https://app.swaggerhub.com/apis-docs/MOCKDOOR/mockdoor_server/)
 - Mockdoor playground/demo environment: [https://github.com/mymockdoor/mockdoor.playground](https://github.com/mymockdoor/mockdoor.playground) 
 - Website: [https://www.mymockdoor.com/](https://www.mymockdoor.com/)
 

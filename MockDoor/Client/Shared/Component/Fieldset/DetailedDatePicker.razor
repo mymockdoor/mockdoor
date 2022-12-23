@@ -1,9 +1,11 @@
-<div class="d-flex flex-column @CssClass">
+<div class="d-flex  @(SingleRow ? "" : "flex-column") @CssClass">
     <RadzenDatePicker TValue="DateTime" ShowTime="@ShowTime" ShowSeconds="@ShowSeconds" @bind-Value="@Value" Change=@(async args => {  Value = args ?? DateTime.Now; await ValueChanged.InvokeAsync(Value); }) DateFormat="@DateFormat" Class="w-100"/>
     @if (ShowMilliseconds)
     {
-        <RadzenLabel Text="Milliseconds (0-999): "/>
-        
-        <MillisecondTextBox Value="@Value" ValueChanged="@(async arg => { Value = arg ?? DateTime.Now; await ValueChanged.InvokeAsync(Value); })" />
+        <div class="d-flex">
+            <RadzenLabel Text="Milliseconds (0-999): " class="mx-1" Style="width: max-content;" />
+            
+            <MillisecondTextBox Value="@Value" ValueChanged="@(async arg => { Value = arg ?? DateTime.Now; await ValueChanged.InvokeAsync(Value); })" />
+        </div>
     }
 </div>

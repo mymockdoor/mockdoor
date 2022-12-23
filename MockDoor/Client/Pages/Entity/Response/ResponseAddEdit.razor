@@ -1,6 +1,8 @@
 @page "/response/create/{RequestId:int}"
 @page "/response/edit/{RequestId:int}/{Id:int}"
 
+@using MockDoor.Client.Helpers;
+
 @inherits BasePageComponent
 
 @inject ResponseService ResponseService
@@ -167,6 +169,32 @@ else
                                 </div>
                             </div>
                             
+                            
+                            <div class="row" style="margin-bottom: 48px">
+                                <div class="col-md-3 align-right" style="line-height: 2.2rem;">
+                                    <RadzenLabel Text="Latency" />
+                                </div>
+                                <div class="col d-flex">
+                                    <RadzenDatePicker InputClass=""
+                                                      TValue="DateTime"
+                                                      ShowTime="true"
+                                                      TimeOnly="true"
+                                                      DateFormat="mm:ss" 
+                                                      ShowSeconds="true"
+                                                      HoursStep="1"
+                                                      MinutesStep="1"
+                                                      SecondsStep="1"
+                                                      Change="@(arg => { _response.Latency = arg != null ? arg.Value.ToTimespan() : TimeSpan.Zero; _latencyDirty = true;})"
+                                                      Value="@_response.Latency.ToDateTime()"
+                                                      Class="w-100 picker overlay-box"/>
+                                    <div class="d-flex">
+                                        <RadzenLabel Text="Milliseconds (0-999): " class="ml-1" Style="width: max-content;" />
+                                        <MillisecondTimespanTextBox Value="@_response.Latency" ValueChanged="@(arg => { _response.Latency = arg ?? TimeSpan.Zero; _latencyDirty = true; })"/>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            
                            @if (IsEditMode)
                            {
                                 <div class="row" style="margin-bottom: 48px">
@@ -177,6 +205,7 @@ else
                                         <DetailedDatePicker ShowTime="true" 
                                                             ShowSeconds="true" 
                                                             ShowMilliseconds="true" 
+                                                            SingleRow="true"
                                                             Value="@_response.CreatedUtc" 
                                                             ValueChanged="@(arg => { _response.CreatedUtc = arg; _createdDirty = true; })" 
                                                             DateFormat="dd/MM/yy HH:mm:ss.fff"
@@ -237,6 +266,8 @@ else
     bool _createdDirty;
 
     bool _headersDirty;
+    
+    bool _latencyDirty;
 
     MockResponseHeaderDto _newHeader = new MockResponseHeaderDto();
     
@@ -335,6 +366,7 @@ else
         _priorityDirty = false;
         _createdDirty = false;
         _headersDirty = false;
+        _latencyDirty = false;
     }
 
     private async Task SaveAsync()
@@ -371,6 +403,10 @@ else
 
             if (_headersDirty)
                 _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Headers, _response.Headers);
+            
+            if(_latencyDirty)
+                _jsonPatchDocument.Replace((updatedResponse) => updatedResponse.Latency, _response.Latency);
+                
 
             var result = await ResponseService.PatchResponseAsync(Id, _jsonPatchDocument);
 

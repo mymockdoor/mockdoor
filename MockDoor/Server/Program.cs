@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Hosting.StaticWebAssets;
+﻿using Blazored.LocalStorage.JsonConverters;
+using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Mockdoor.Data.Sqlite.Services;
@@ -90,7 +91,11 @@ builder.Services.AddMvc()
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.MapType<TimeSpan>(() => new OpenApiSchema { Type = "string", Format = "0.00:00:00", Reference = null, Nullable = false });
+    c.MapType<TimeSpan?>(() => new OpenApiSchema { Type = "string", Format = "0.00:00:00", Reference = null, Nullable = true });
+});
 
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();

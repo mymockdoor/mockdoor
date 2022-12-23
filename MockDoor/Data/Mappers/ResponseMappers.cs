@@ -79,6 +79,7 @@ public static class ResponseMappers
                 Priority = mockResponse.Priority,
                 Enabled = mockResponse.Enabled,
                 CreatedUtc = mockResponse.CreatedUtc,
+                Latency = mockResponse.Latency,
                 Headers = mockResponse.Headers?.ToDtos()
             };
     }
@@ -102,6 +103,7 @@ public static class ResponseMappers
                 Priority = mockResponseDto.Priority,
                 Enabled = mockResponseDto.Enabled,
                 CreatedUtc = mockResponseDto.CreatedUtc,
+                Latency = mockResponseDto.Latency,
                 Headers = mockResponseDto.Headers
             };
     }
@@ -125,6 +127,7 @@ public static class ResponseMappers
                 Priority = mockResponse.Priority,
                 Enabled = mockResponse.Enabled,
                 CreatedUtc = mockResponse.CreatedUtc ?? DateTime.UtcNow,
+                Latency = mockResponse.Latency,
                 Headers = mockResponse.Headers
             };
     }
@@ -151,6 +154,7 @@ public static class ResponseMappers
         baseMockResponse.Priority = updateMockResponse.Priority;
         baseMockResponse.Enabled = updateMockResponse.Enabled;
         baseMockResponse.CreatedUtc = updateMockResponse.CreatedUtc ?? DateTime.UtcNow;
+        baseMockResponse.Latency = updateMockResponse.Latency;
         baseMockResponse.Headers = updateMockResponse.Headers?.ToEntities();
 
         if (generateChecksum)

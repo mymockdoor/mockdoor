@@ -24,4 +24,6 @@ public partial class DetailedDatePicker
     
     [Parameter]
     public bool ShowMilliseconds { get; set; }
+    
+    [Parameter] public bool SingleRow { get; set; }
 }

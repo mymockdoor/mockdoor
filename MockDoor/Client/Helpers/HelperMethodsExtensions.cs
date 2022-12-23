@@ -29,6 +29,16 @@ namespace MockDoor.Client.Helpers
             return Math.Round(milliseconds, decimalPlaces);
         }
 
+        public static decimal? GetPreciseMilliseconds(this TimeSpan? source, int decimalPlaces)
+        {
+            if (source == null)
+                return null;
+
+            decimal milliseconds = GetMillisecondsAsTicks(source.Value) / (decimal)TimeSpan.TicksPerMillisecond;
+
+            return Math.Round(milliseconds, decimalPlaces);
+        }
+
         public static long GetMillisecondsAsTicks(this DateTime source)
         {
             var currentTicksExcludingMilliseconds = new DateTime(source.Year, source.Month, source.Day, source.Hour, source.Minute, source.Second);
@@ -36,6 +46,26 @@ namespace MockDoor.Client.Helpers
             var ticksRemaining = source.Ticks - currentTicksExcludingMilliseconds.Ticks;
 
             return ticksRemaining;
+        }
+
+        public static long GetMillisecondsAsTicks(this TimeSpan source)
+        {
+            var currentTicksExcludingMilliseconds = new TimeSpan(source.Days, source.Hours, source.Minutes, source.Seconds);
+
+            var ticksRemaining = source.Ticks - currentTicksExcludingMilliseconds.Ticks;
+
+            return ticksRemaining;
+        }
+
+
+        public static TimeSpan ToTimespan(this DateTime source)
+        {
+            return source.TimeOfDay;
+        }
+
+        public static DateTime ToDateTime(this TimeSpan source)
+        {
+            return new DateTime() + source;
         }
 
         public static string MakePretty(this string value, bool replaceNullWithEmpty = true)

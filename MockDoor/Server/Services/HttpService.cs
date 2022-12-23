@@ -67,12 +67,14 @@ namespace MockDoor.Server.Services
                             context.Response.Headers.TryAdd(headerItem.Name, string.Join(";", headerItem.Value));
                         }
                         
-                        return new ContentResult()
+                        var response = new ContentResult()
                         {
                             Content = existingResponse.Body,
                             ContentType = existingResponse.ContentType,
                             StatusCode = (int)existingResponse.Code
                         };
+
+                        return ValidatedResponseForKnownIssues(response);
                     }
                 }
                 return null;
@@ -83,6 +85,23 @@ namespace MockDoor.Server.Services
 
                 return response;
             }
+        }
+
+        private IActionResult ValidatedResponseForKnownIssues(ContentResult response)
+        {
+            //check known bad responses and return error message instead
+            if (response.StatusCode == 204 && !string.IsNullOrEmpty(response.Content))
+            {
+                //known to exception: returning status code no content with content is bad
+                return new ContentResult()
+                {
+                    Content = $"Response was status code 204 no content but contained the following content. This is not supported:\nOriginal Content Type: {response.ContentType}\nOriginal Body:\n{response.Content}",
+                    ContentType = "text/plain",
+                    StatusCode = 500
+                };
+            }
+
+            return response;
         }
 
         private async Task SendDebuggerMessageAsync(RestType restType, HttpContext context, string endpointPath)

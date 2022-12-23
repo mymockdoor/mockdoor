@@ -26,7 +26,7 @@
                     <h3 style="color: orange">Warning: Deleting this tenant will also delete the following Service groups and Microservices and any related mock responses for them</h3>
                     
                     
-                <RadzenTree Style="height: 300px" Data=@_tenant.ServiceGroups Expand=@OnExpand>
+                <RadzenTree Style="width: 100%; min-height: 300px; max-height: 600px;" Data=@_tenant.ServiceGroups Expand=@OnExpand>
                      <RadzenTreeLevel TextProperty="Name" Expanded=@ShouldExpand />
                 </RadzenTree>
                 </div>

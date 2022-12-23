@@ -134,21 +134,25 @@ app.Use(async (context, next) =>
     await next();
 });
 
-if (deploymentConfiguration.PathBase != null)
+var basePath = deploymentConfiguration.PathBase ?? "/";
+if (deploymentConfiguration.PathBase == null)
 {
-    app.UsePathBase(deploymentConfiguration.PathBase);
-    app.Use((context, next) =>
-    {
-        context.Request.PathBase = new PathString($"/{deploymentConfiguration.PathBase.TrimStart('/')}");
-        return next();
-    });
-    app.Use(async (context, next) =>
-    {
-        context.Response.Headers.TryAdd(HttpConstants.CustomBasePathHeaderKey, deploymentConfiguration.PathBase);
-
-        await next();
-    });
+    deploymentConfiguration.PathBase = "/";
 }
+
+app.UsePathBase(basePath);
+app.Use((context, next) =>
+{
+    context.Request.PathBase = new PathString($"/{basePath.TrimStart('/')}");
+    return next();
+});
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.TryAdd(HttpConstants.CustomBasePathHeaderKey, basePath);
+
+    await next();
+});
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -167,7 +171,6 @@ else
     }
 }
 
-var basePath = deploymentConfiguration.PathBase ?? "/";
 app.UseSwagger(c =>
 {
     c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>

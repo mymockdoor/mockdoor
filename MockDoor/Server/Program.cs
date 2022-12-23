@@ -180,7 +180,7 @@ app.UseSwagger(c =>
         };
     });
 });
-app.UseSwaggerUI(c => c.SwaggerEndpoint($"{basePath.TrimEnd('/')}/swagger/v1/swagger.json", "Mockdoor API v0.50.03"));
+app.UseSwaggerUI(c => c.SwaggerEndpoint($"{basePath.TrimEnd('/')}/swagger/v1/swagger.json", $"Mockdoor API {SharedConstants.MockdoorVersion}"));
 
 if (deploymentConfiguration.ForceHttps)
 {

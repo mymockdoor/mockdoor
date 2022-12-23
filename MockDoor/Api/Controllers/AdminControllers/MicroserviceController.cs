@@ -28,6 +28,9 @@ namespace MockDoor.Api.Controllers.AdminControllers
 
         [HttpGet("{microserviceId}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(MicroserviceResultDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<MicroserviceResultDto>> Get(int microserviceId)
         {
             _logger.LogInformation("Getting microservice: {MicroserviceId}", microserviceId);
@@ -44,6 +47,10 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet("findbypath/{serviceGroupId}/{microservicePath}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(MicroserviceResultDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<MicroserviceResultDto>> Get(int serviceGroupId, string? microservicePath)
         {
             if (serviceGroupId <= 0)
@@ -61,18 +68,24 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet("list")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(IEnumerable<MicroserviceResultDto>))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<IEnumerable<MicroserviceResultDto>>> GetAllMicroservices()
         {
             return Ok(await _microserviceRepository.GetAllMicroservices());
         }
 
         [HttpGet("searchresultlist")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(IEnumerable<MicroserviceResultDto>))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<IEnumerable<MicroserviceSearchResultDto>>> GetAllMicroserviceSearchResults()
         {
             return Ok(await _microserviceRepository.GetAllMicroserviceSearchResults());
         }
 
         [HttpGet("list/{serviceGroupId}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(IEnumerable<MicroserviceResultDto>))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<IEnumerable<MicroserviceResultDto>>> GetMicroservicesForServiceGroup(int serviceGroupId)
         {
             if (serviceGroupId <= 0)
@@ -82,6 +95,10 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet("parents/{microserviceId}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(MicroserviceParentIds))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<MicroserviceParentIds>> GetParentIds(int microserviceId)
         {
             if (microserviceId <= 0)
@@ -92,10 +109,15 @@ namespace MockDoor.Api.Controllers.AdminControllers
             if(microserviceParentIds == null)
                 return NotFound(ErrorMessageConstants.MicroserviceNotFound);
 
-            return microserviceParentIds;
+            return Ok(microserviceParentIds);
         }
 
         [HttpPost("{serviceGroupId}")]
+        [SwaggerResponse(StatusCodes.Status201Created, Type = typeof(MicroserviceResultDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<MicroserviceResultDto>> CreateMicroservice(int serviceGroupId, [FromBody] MicroserviceResultDto? newMicroservice)
         {
             if (serviceGroupId <= 0)
@@ -139,10 +161,15 @@ namespace MockDoor.Api.Controllers.AdminControllers
             if (createdMicroservice == null)
                 return NotFound(ErrorMessageConstants.ServiceGroupNotFound);
             
-            return Ok(createdMicroservice);
+            return StatusCode(201, createdMicroservice);
         }
 
         [HttpPut("{microserviceId}")]
+        [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> UpdateMicroservice(int microserviceId, [FromBody] MicroserviceResultDto? updatedMicroservice)
         {
             if (microserviceId <= 0)
@@ -177,10 +204,14 @@ namespace MockDoor.Api.Controllers.AdminControllers
             if (!isValid)
                 return BadRequest(results.ToBadRequestResult());
 
-            return await _microserviceRepository.UpdateMicroservice(updatedMicroservice) ? Ok() : NoContent();
+            return await _microserviceRepository.UpdateMicroservice(updatedMicroservice) ? Ok() : NotFound();
         }
 
         [HttpDelete("{id}")]
+        [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status204NoContent)]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> Delete(int id)
         {
             if (id <= 0)

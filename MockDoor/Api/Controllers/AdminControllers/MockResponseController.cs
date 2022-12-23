@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -6,6 +7,8 @@ using MockDoor.Abstractions.Repositories;
 using MockDoor.Shared.Constants;
 using MockDoor.Shared.Helper;
 using MockDoor.Shared.Models.Response;
+using MockDoor.Shared.Models.Utility;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace MockDoor.Api.Controllers.AdminControllers
 {
@@ -24,6 +27,10 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet("{id}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(MockResponseDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<MockResponseDto>> Get(int id)
         {
             if (id <= 0)
@@ -38,7 +45,12 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPost("{requestId}")]
-        public async Task<ActionResult> CreateRequest(int requestId, [FromBody] MockResponseDto? response)
+        [SwaggerResponse(StatusCodes.Status201Created, Type = typeof(MockResponseDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
+        public async Task<ActionResult<MockResponseDto>> CreateResponse(int requestId, [FromBody] MockResponseDto? response)
         {
             if (requestId <= 0)
                 return BadRequest(ErrorMessageConstants.RequestId);
@@ -46,12 +58,24 @@ namespace MockDoor.Api.Controllers.AdminControllers
             if (response == null)
                 return BadRequest(ErrorMessageConstants.InvalidOrMissingRequestBody);
 
+            var results = new List<ValidationResult>();
+
+            bool isValid = GeneralHelper.TryValidateFullObject(response, new ValidationContext(response, null), results);
+
+            if (!isValid)
+                return BadRequest(results.ToBadRequestResult());
+            
             var created = await _mockResponseRepository.CreateAsync(requestId, response);
             return created.success ? StatusCode(201, created.result) : BadRequest(ErrorMessageConstants.FailedToCreate);
         }
 
         [HttpPost("bulk/{requestId}")]
-        public async Task<ActionResult> PostBulkCreateForRequest(int requestId, [FromBody] List<MockResponseDto>? responses)
+        [SwaggerResponse(StatusCodes.Status201Created, Type = typeof(List<MockResponseDto>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
+        public async Task<ActionResult<List<MockResponseDto>>> PostBulkCreateForRequest(int requestId, [FromBody] List<MockResponseDto>? responses)
         {
             if (requestId <= 0)
                 return BadRequest(ErrorMessageConstants.RequestId);
@@ -59,6 +83,16 @@ namespace MockDoor.Api.Controllers.AdminControllers
             if (responses == null)
                 return BadRequest(ErrorMessageConstants.InvalidOrMissingRequestBody);
 
+            var results = new List<ValidationResult>();
+
+            foreach (var response in responses)
+            {
+                GeneralHelper.TryValidateFullObject(response, new ValidationContext(response, null), results);
+            }
+
+            if (results.Any())
+                return BadRequest(results.ToBadRequestResult());
+            
             var created = await _mockResponseRepository.CreateBulkAsync(requestId, responses);
             
             if (created.success)
@@ -75,7 +109,12 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPut("{requestId}")]
-        public async Task<ActionResult> UpdateResponseForRequest(int requestId, [FromBody] MockResponseDto? response)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(MockResponseDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
+        public async Task<ActionResult<MockResponseDto>> UpdateResponseForRequest(int requestId, [FromBody] MockResponseDto? response)
         {
             if (requestId <= 0)
                 return BadRequest(ErrorMessageConstants.RequestId);
@@ -84,21 +123,35 @@ namespace MockDoor.Api.Controllers.AdminControllers
                 return BadRequest(ErrorMessageConstants.InvalidOrMissingRequestBody);
             
             var updatedResponse = await _mockResponseRepository.UpdateMockResponseAsync(requestId, response);
+
+            if (updatedResponse == null)
+            {
+                return NotFound(ErrorMessageConstants.ResponseNotFound);
+            }
+            
             return Ok(updatedResponse);
         }
 
         [HttpDelete("{responseId}")]
+        [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status204NoContent)]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> DeleteResponse(int responseId)
         {
             if (responseId <= 0)
                 return BadRequest(ErrorMessageConstants.ResponseId);
 
-            var created = await _mockResponseRepository.DeleteAsync(responseId);
-            return created ? Ok() : NoContent();
+            var deleted = await _mockResponseRepository.DeleteAsync(responseId);
+            return deleted ? Ok() : NoContent();
         }
 
 
         [HttpDelete("bulk/{requestid}")]
+        [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status204NoContent)]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> DeleteBulkCreateForRequest(int requestid, [FromBody] List<MockResponseDto>? responses)
         {
             if (requestid <= 0)
@@ -107,12 +160,17 @@ namespace MockDoor.Api.Controllers.AdminControllers
             if (responses == null)
                 return BadRequest(ErrorMessageConstants.InvalidOrMissingRequestBody);
 
-            var created = await _mockResponseRepository.DeleteBulkAsync(requestid, responses);
-            return created ? Ok() : NoContent();
+            var deleted = await _mockResponseRepository.DeleteBulkAsync(requestid, responses);
+            return deleted ? Ok() : NoContent();
         }
 
         [HttpPatch("{mockResponseId}")]
-        public async Task<ActionResult> PatchResponse(int mockResponseId, [FromBody] JsonPatchDocument<UpdateMockResponseDto>? updateResponseDto)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(UpdateMockResponseDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
+        public async Task<ActionResult<UpdateMockResponseDto>> PatchResponse(int mockResponseId, [FromBody] JsonPatchDocument<UpdateMockResponseDto>? updateResponseDto)
         {
             if (mockResponseId <= 0)
                 return BadRequest(ErrorMessageConstants.ResponseId);

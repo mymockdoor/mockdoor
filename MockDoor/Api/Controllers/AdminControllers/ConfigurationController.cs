@@ -1,10 +1,12 @@
 ﻿using System.Text;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MockDoor.Abstractions.ConfigurationServices;
 using MockDoor.Shared.Models.Configuration;
 using MockDoor.Shared.Models.Utility;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace MockDoor.Api.Controllers.AdminControllers
 {
@@ -25,6 +27,8 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(DeploymentConfiguration))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<DeploymentConfiguration>> GetAsync()
         {
             _deploymentConfiguration.SqlConnectionStatus =
@@ -48,6 +52,9 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPost("testconnection")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(ConnectionStringTestResult))]
+        [SwaggerResponse(StatusCodes.Status404NotFound)]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<ConnectionStringTestResult>> TestConnection()
         {
             _logger.LogInformation("testing database connection");
@@ -62,6 +69,8 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPost("applymigrations")]
+        [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> ApplyMigrations()
         {
             await _databaseConfigurationService.ApplyMigrationsAsync(_deploymentConfiguration

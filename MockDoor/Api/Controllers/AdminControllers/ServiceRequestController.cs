@@ -1,13 +1,17 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MockDoor.Abstractions.Repositories;
 using MockDoor.Shared.Constants;
 using MockDoor.Shared.Helper;
+using MockDoor.Shared.Models.Microservice;
 using MockDoor.Shared.Models.Response;
 using MockDoor.Shared.Models.ServiceRequest;
 using MockDoor.Shared.Models.Timetravel;
+using MockDoor.Shared.Models.Utility;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace MockDoor.Api.Controllers.AdminControllers
 {
@@ -25,6 +29,9 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet("list/{microserviceId}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(IEnumerable<ServiceRequestDto>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<IEnumerable<ServiceRequestDto>>> GetAllForMicroservice(int microserviceId)
         {
             if (microserviceId <= 0)
@@ -35,16 +42,29 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet("{serviceRequestId}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(ServiceRequestDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<ServiceRequestDto>> GetById(int serviceRequestId)
         {
             if (serviceRequestId <= 0)
                 return BadRequest(ErrorMessageConstants.RequestId);
 
-            return Ok(await _serviceRequestRepository.GetServiceRequest(serviceRequestId));
+            var serviceRequest = await _serviceRequestRepository.GetServiceRequest(serviceRequestId);
+
+            if (serviceRequest == null)
+                return NotFound(ErrorMessageConstants.RequestNotFound);
+            
+            return Ok(serviceRequest);
         }
 
 
         [HttpPost("{microserviceId}")]
+        [SwaggerResponse(StatusCodes.Status201Created, Type = typeof(ServiceRequestDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
         public async Task<ActionResult<ServiceRequestDto>> CreateRequest(int microserviceId, [FromBody] ServiceRequestDto? serviceRequest)
         {
             if (microserviceId <= 0)
@@ -52,18 +72,43 @@ namespace MockDoor.Api.Controllers.AdminControllers
             
             if (serviceRequest == null)
                 return BadRequest(ErrorMessageConstants.InvalidOrMissingRequestBody);
+
+            var results = new List<ValidationResult>();
+
+            bool isValid = GeneralHelper.TryValidateFullObject(serviceRequest, new ValidationContext(serviceRequest, null), results);
+
+            if (!isValid)
+                return BadRequest(results.ToBadRequestResult());
             
-            return Ok(await _serviceRequestRepository.CreateServiceRequestAsync(microserviceId, serviceRequest));
+            var createdRequest =
+                await _serviceRequestRepository.CreateServiceRequestAsync(microserviceId, serviceRequest);
+
+            if (createdRequest == null)
+                return NotFound(ErrorMessageConstants.MicroserviceNotFound);
+            
+            return StatusCode(201, createdRequest);
         }
 
         [HttpPut("{serviceRequestId}")]
-        public async Task<ActionResult> UpdateRequest(int serviceRequestId, [FromBody] UpdateServiceRequestDto? serviceRequest)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(UpdateServiceRequestDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
+        public async Task<ActionResult<UpdateServiceRequestDto>> UpdateRequest(int serviceRequestId, [FromBody] UpdateServiceRequestDto? serviceRequest)
         {
             if (serviceRequestId <= 0)
                 return BadRequest(ErrorMessageConstants.RequestId);
             
             if (serviceRequest == null)
                 return BadRequest(ErrorMessageConstants.InvalidOrMissingRequestBody);
+            
+            var results = new List<ValidationResult>();
+
+            bool isValid = GeneralHelper.TryValidateFullObject(serviceRequest, new ValidationContext(serviceRequest, null), results);
+
+            if (!isValid)
+                return BadRequest(results.ToBadRequestResult());
             
             var updatedRequest = await _serviceRequestRepository.UpdateServiceRequest(serviceRequestId, serviceRequest);
 
@@ -74,6 +119,11 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPut("responses/{serviceRequestId}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(List<MockResponseDto>))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> UpdateMockResponses(int serviceRequestId, [FromBody] List<MockResponseDto>? responses)
         {
             if (serviceRequestId <= 0)
@@ -82,6 +132,16 @@ namespace MockDoor.Api.Controllers.AdminControllers
             if (responses == null)
                 return BadRequest(ErrorMessageConstants.InvalidOrMissingRequestBody);
 
+            var results = new List<ValidationResult>();
+
+            foreach (var response in responses)
+            {
+                GeneralHelper.TryValidateFullObject(response, new ValidationContext(response, null), results);
+            }
+
+            if (results.Any())
+                return BadRequest(results.ToBadRequestResult());
+            
             var updatedResponses = await _serviceRequestRepository.UpdateMockResponses(serviceRequestId, responses);
             
             if(updatedResponses == null)
@@ -91,7 +151,12 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPatch("{serviceRequestId}")]
-        public async Task<ActionResult> PatchServiceRequest(int serviceRequestId, [FromBody] JsonPatchDocument<UpdateServiceRequestDto>? updatedServiceRequest)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(UpdateServiceRequestDto))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
+        public async Task<ActionResult<UpdateServiceRequestDto>> PatchServiceRequest(int serviceRequestId, [FromBody] JsonPatchDocument<UpdateServiceRequestDto>? updatedServiceRequest)
         {
             if (serviceRequestId <= 0)
                 return BadRequest(ErrorMessageConstants.RequestId);
@@ -115,54 +180,19 @@ namespace MockDoor.Api.Controllers.AdminControllers
                 return BadRequest(ModelState);
             }
 
-            var result = await _serviceRequestRepository.UpdateServiceRequest(serviceRequestId, serviceRequestDto);
+            var updatedRequest = await _serviceRequestRepository.UpdateServiceRequest(serviceRequestId, serviceRequestDto);
 
-            return Ok(result);
-        }
-
-
-        [HttpPost("setsimulate/{serviceRequestId}")]
-        public async Task<ActionResult> SetSimulate(int serviceRequestId, [FromBody] UpdateTimeTravelDto date)
-        {
-            if (serviceRequestId <= 0)
-                return BadRequest(ErrorMessageConstants.RequestId);
-
-            var serviceRequestDto = await _serviceRequestRepository.GetUpdateServiceRequest(serviceRequestId);
-
-            if (serviceRequestDto == null)
-                return NotFound(ErrorMessageConstants.RequestNotFound);
-
-            serviceRequestDto.SimulateTime = date.Time;
-
-            var result = await _serviceRequestRepository.UpdateServiceRequest(serviceRequestId, serviceRequestDto);
-
-
-            return Ok(result);
-        }
-
-        [HttpGet("gettimes/{serviceRequestId}")]
-        public async Task<ActionResult> GetTimes(int serviceRequestId)
-        {
-            if (serviceRequestId <= 0)
-                return BadRequest(ErrorMessageConstants.RequestId);
-
-            var serviceRequestDto = await _serviceRequestRepository.GetServiceRequest(serviceRequestId);
-
-            if (serviceRequestDto == null)
-                return NotFound(ErrorMessageConstants.RequestNotFound);
-
-            var result = await _serviceRequestRepository.GetMockResponseTimes(serviceRequestId);
-
-            var timeTravelDto = new TimeTravelDto()
-            {
-                AvailableTimes = result.ToList(),
-                CurrentTime = serviceRequestDto.SimulateTime
-            };
-
-            return Ok(timeTravelDto);
+            if (updatedRequest == null)
+                return NotFound(ErrorMessageConstants.MicroserviceNotFound);
+            
+            return Ok(updatedRequest);
         }
 
         [HttpDelete("{serviceRequestId}")]
+        [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status204NoContent)]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> DeleteRequest(int serviceRequestId)
         {
             if (serviceRequestId <= 0)

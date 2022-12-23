@@ -65,7 +65,7 @@ namespace MockDoor.Data.Repositories
             var request = _context.ServiceRequests.Include(sr => sr.MockResponses).FirstOrDefault(sr => sr.ID == mockResponseId);
 
             if (request == null)
-                throw new Exception("Request not found");
+                return null;
 
             if (updatedResponse.Id > 0)
             {

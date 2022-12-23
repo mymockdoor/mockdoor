@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ using MockDoor.Shared.Helper;
 using MockDoor.Shared.Models.Enum;
 using MockDoor.Shared.Models.Utility;
 using Newtonsoft.Json;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace MockDoor.Api.Controllers.AdminControllers
 {
@@ -33,6 +35,7 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPost("testurl")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(PingTestResult))]
         public async Task<ActionResult<PingTestResult>> TestUrl([FromBody] TestUrl? test)
         {
             if(test == null)
@@ -129,6 +132,8 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpGet("database/export")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(FileContentResult))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<FileContentResult> ExportDatabaseAsFile()
         {
             _logger.LogInformation("exporting database");
@@ -143,6 +148,8 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
         
         [HttpGet("database/exportasjson")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(FullDatabaseDto))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult<FullDatabaseDto>> ExportDatabaseAsJson()
         {
             _logger.LogInformation("exporting database");
@@ -150,6 +157,11 @@ namespace MockDoor.Api.Controllers.AdminControllers
         }
 
         [HttpPost("database/import")]
+        [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, Type = typeof(BadRequestResultDto))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, Type = typeof(string))]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> ImportDatabaseAsJson([FromBody] FullDatabaseDto? import)
         {
             if (import == null)
@@ -169,7 +181,14 @@ namespace MockDoor.Api.Controllers.AdminControllers
             if (!isValid)
                 return BadRequest(results.ToBadRequestResult());
             
-            return Ok(await _baseRepository.ImportDatabase(import, false));
+            var imported = await _baseRepository.ImportDatabase(import, false);
+
+            if (!imported)
+            {
+                return BadRequest(ErrorMessageConstants.TenantNotFound);
+            }
+            
+            return Ok();
         }
     }
 }

@@ -55,6 +55,11 @@ namespace MockDoor.Data.Repositories
             if (serviceRequestDto == null)
                 throw new Exception("No request provided");
 
+            var microserviceExists = _context.Microservices.Any(m => m.ID == microserviceId);
+
+            if (!microserviceExists)
+                return null;
+            
             serviceRequestDto.MicroserviceId = microserviceId;
 
             var serviceRequest = serviceRequestDto.ToEntity(createNew: true, createChecksumOnResponses: true);

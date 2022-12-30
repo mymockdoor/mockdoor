@@ -1,23 +1,7 @@
-# tye application configuration file
-# read all about it at https://github.com/dotnet/tye
-#
-# when you've given us a try, we'd love to know what you think:
-#    https://aka.ms/AA7q20u
-#
 name: mockdoor.server
 services:
 - name: mockdoor-server
-  image:  dockerregistry.runeclawgames.com/mockdoorserver:latest
-  env:
-  - name: DeploymentConfiguration__PathBase
-    value: /dev/mockdoor
+  image:  mockdoor/server:latest
   bindings:
-    - port: 80
+    - port: 44304
       protocol: http
-ingress:
-  - name: ingress
-    bindings:
-      - port: 44305
-    rules:
-      - path: /dev/mockdoor
-        service: mockdoor-server

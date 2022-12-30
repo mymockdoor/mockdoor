@@ -233,7 +233,7 @@
                     </div>
                 </div>
 
-                <ServiceHeaderListField Headers="@_defaultMicroservice.Headers" ValueProperty="HeaderName" Disabled="@(_hasConfirmedDefaults)"/>
+                <ServiceHeaderListField Headers="@_defaultMicroservice.Headers" ValueProperty="Name" Disabled="@(_hasConfirmedDefaults)"/>
 
                 <div class="d-flex">
                     <div class="flex-grow-1"></div>
@@ -423,8 +423,8 @@
                                         @foreach (var header in microservice.Value.Headers)
                                         {
                                             <div class="m-1">
-                                                <RadzenTextBox @bind-Value="@header.Name" Name="@("HeaderName" + microservice.GetHashCode())"/>
-                                                <RadzenRequiredValidator Text="HeaderName is required" Component="@("HeaderName" + microservice.GetHashCode())" Popup="true" Style="position: absolute"/>
+                                                <RadzenTextBox @bind-Value="@header.Name" Name="@("Name" + microservice.GetHashCode())"/>
+                                                <RadzenRequiredValidator Text="Name is required" Component="@("Name" + microservice.GetHashCode())" Popup="true" Style="position: absolute"/>
 
                                                 <RadzenButton ButtonStyle="ButtonStyle.Primary" Click="@((_) => CycleHeaderMode(header))">
                                                     <RadzenBadge Variant="Variant.Filled" IsPill="true" BadgeStyle="@(header.Enabled ? BadgeStyle.Success : BadgeStyle.Danger)" Text="@(GetHeaderButtonDescription(header))" Class="ml-2"/>

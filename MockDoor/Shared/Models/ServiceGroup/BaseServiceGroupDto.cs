@@ -27,7 +27,6 @@ namespace MockDoor.Shared.Models.ServiceGroup
 
         public DateTime? SimulateTime { get; set; }
 
-        [Url(ErrorMessage = "Default health check must be a valid url")]
         [MaxLength(250, ErrorMessage = "field exceeded max length {0}")]
         public string DefaultHealthCheckUrl { get; set; }
 
@@ -58,6 +57,15 @@ namespace MockDoor.Shared.Models.ServiceGroup
                 if (existingNames.Any(name => string.Equals(name, Name, StringComparison.CurrentCultureIgnoreCase)))
                 {
                     yield return new ValidationResult("Name already taken by existing group in tenant, please try another", new[] { "Name" });
+                }
+            }
+
+            if (!string.IsNullOrEmpty(DefaultHealthCheckUrl) && (validationContext.MemberName == null || validationContext.MemberName.Equals("DefaultHealthCheckUrl")) )
+            {
+                if (!Uri.IsWellFormedUriString(DefaultHealthCheckUrl, UriKind.Absolute))
+                {
+                    yield return new ValidationResult("Default health check must be a valid url",
+                        new[] { "DefaultHealthCheckUrl" });
                 }
             }
         }

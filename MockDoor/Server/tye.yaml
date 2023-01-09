@@ -3,6 +3,9 @@ services:
 - name: mockdoor-server
   project: MockDoor.Server.csproj
   replicas: 1
+  env:
+    - name: DeploymentConfiguration__PathBase
+      value: /
   bindings:
     - port: 44304
       protocol: http

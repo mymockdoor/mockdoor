@@ -2,6 +2,9 @@ name: mockdoor.server
 services:
 - name: mockdoor-server
   image:  mockdoor/server:latest
+  env:
+    - name: DeploymentConfiguration__PathBase
+      value: /
   bindings:
     - port: 44304
       protocol: http

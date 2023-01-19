@@ -23,7 +23,7 @@
                         }
                         else if (_deploymentConfiguration.SqlConnectionStatus == ConnectionStringStatus.Failed || _deploymentConfiguration.SqlConnectionStatus == ConnectionStringStatus.Untested)
                         {
-                            <RadzenCard Style="margin: auto">
+                            <RadzenCard class="m-auto">
                                 @if (_deploymentConfiguration?.Debug ?? false)
                                 {
                                     <div class="text-center">
@@ -32,10 +32,9 @@
                                         <h2>@_deploymentConfiguration.DatabaseConfig.ConnectionString</h2>
 
                                         <div class="d-flex">
-                                            <RadzenTextBox class="flex-grow-1 mr-2" @bind-Value=_connectionString @oninput="@(args => { _connectionString = args.Value as string; _connectionStatus = ConnectionStringStatus.Untested; })"/>
-                                            <RadzenButton Click="@OnSubmitNewConnectionString" Text="Test" Disabled=@_testing/>
+                                            <RadzenTextBox class="flex-grow-1 mr-2" @bind-Value=_connectionString @oninput="@(args => { _connectionString = args.Value as string; _connectionStatus = ConnectionStringStatus.Untested; })" />
+                                            <RadzenButton Click="@OnSubmitNewConnectionString" Text="Test" Disabled="@_testing" />
                                         </div>
-                                        
                                         
                                         <RadzenAlert AllowClose="false" AlertStyle="@StatusToAlertStyle()" Variant="Variant.Flat" Shade="Shade.Lighter">
                                             Test status: @_connectionStatus
@@ -61,11 +60,9 @@
                                     else if (_connectionStatus == ConnectionStringStatus.ConnectNoDatabase)
                                     {  
                                         <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" Shade="Shade.Lighter">
-                                           <p>Database was not found but Mockdoor may be able to create this for you, its recommended you create the database yourself but you can try and skip this step</p>
+                                           <p>Database was not found but Mockdoor may be able to create this for you, its recommended you create the database yourself but, if the user has database create permissions you can continue and Mockdoor will create it for you</p>
                                        </RadzenAlert>
                                         <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Lighter">
-                                            <p>If this is the original connection string wait a moment and try refreshing the page</p>
-                                            
                                             <p>You must now change the environment variable for connection string to the below and restart the service</p>
                                             <h4>Name:</h4>
                                             <h5>DeploymentConfiguration__DatabaseConfig__ConnectionStrings</h5>
@@ -85,7 +82,7 @@
                         }
                         else //migrations not applied yet
                         {
-                            <RadzenCard Style="margin: auto;">
+                            <RadzenCard class="m-auto">
                                 <div class="text-center">
                                     @if (_deploymentConfiguration?.Debug ?? false)
                                     {
@@ -94,8 +91,8 @@
                                     }
                                 </div>
                                 
-                                <div style="margin: auto; width: fit-content;">
-                                    <h1 style="text-align: center;">Migrations to apply</h1>
+                                <div class="m-auto migrations-to-apply-card">
+                                    <h1 class="text-center">Migrations to apply</h1>
                                     <ul>
                                         @foreach (var migration in GetPendingMigrations())
                                         {
@@ -148,14 +145,14 @@
             }
             else if (!string.IsNullOrWhiteSpace(_errorsOnLoad))
             {
-                <RadzenCard Style="margin: auto;">
+                <RadzenCard  class="m-auto">
                     <h2>Unexpected error occured:</h2>
                     <p>@_errorsOnLoad</p>
                 </RadzenCard>
             }
             else
             {
-                <RadzenCard Style="margin: auto; width: 100%; text-align: center;">
+                <RadzenCard  class="m-auto testing-connection-card text-center">
                     <h1>Testing connection please wait</h1>
                     <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate"/>
                 </RadzenCard>

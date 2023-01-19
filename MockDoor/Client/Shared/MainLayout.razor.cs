@@ -5,6 +5,7 @@ using MockDoor.Client.Services;
 using MockDoor.Client.State;
 using MockDoor.Shared.Models.Configuration;
 using MockDoor.Shared.Models.Utility;
+using Radzen;
 
 namespace MockDoor.Client.Shared
 {
@@ -32,6 +33,7 @@ namespace MockDoor.Client.Shared
 
         private DeploymentConfiguration _deploymentConfiguration;
         private string _errorsOnLoad;
+        private BadRequestResultDto _badRequestResult;
 
         protected override void OnInitialized()
         {
@@ -80,6 +82,7 @@ namespace MockDoor.Client.Shared
             else
             {
                 _status = result.Message;
+                _connectionStatus = ConnectionStringStatus.Failed;
             }
             _testing = false;
             StateHasChanged();
@@ -100,6 +103,10 @@ namespace MockDoor.Client.Shared
                 _deploymentConfiguration.PendingMigrations = new List<string>();
                 _deploymentConfiguration.SqlConnectionStatus = ConnectionStringStatus.Success;
             }
+            else
+            {
+                _badRequestResult = result.BadRequestResult;
+            }
             _testing = false;
             StateHasChanged();
         }
@@ -107,6 +114,18 @@ namespace MockDoor.Client.Shared
         List<string> GetPendingMigrations()
         {
             return _deploymentConfiguration?.PendingMigrations?.ToList() ?? new List<string>();
+        }
+
+        private AlertStyle StatusToAlertStyle()
+        {
+            switch (_connectionStatus)
+            {
+                case ConnectionStringStatus.ConnectNoDatabase:
+                case ConnectionStringStatus.Success: return AlertStyle.Success;
+                case ConnectionStringStatus.Failed: return AlertStyle.Danger;
+                case ConnectionStringStatus.Untested: return AlertStyle.Light;
+                default: return AlertStyle.Primary;
+            }
         }
     }
 }

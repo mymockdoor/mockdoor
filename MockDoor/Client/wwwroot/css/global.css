@@ -8,3 +8,12 @@
     height:100%;
     width:100%;
 }
+
+.migrations-to-apply-card {
+    width: fit-content;
+}
+
+.testing-connection-card {
+    width: 100%;
+    max-width: 800px;
+}

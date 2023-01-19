@@ -1,9 +1,11 @@
 ﻿using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MockDoor.Abstractions.ConfigurationServices;
+using MockDoor.Shared.Helper;
 using MockDoor.Shared.Models.Configuration;
 using MockDoor.Shared.Models.Utility;
 using Swashbuckle.AspNetCore.Annotations;
@@ -70,11 +72,24 @@ namespace MockDoor.Api.Controllers.AdminControllers
 
         [HttpPost("applymigrations")]
         [SwaggerResponse(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status400BadRequest)]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, Type = typeof(string))]
         public async Task<ActionResult> ApplyMigrations()
         {
-            await _databaseConfigurationService.ApplyMigrationsAsync(_deploymentConfiguration
-                .DatabaseConfig.ConnectionString);
+            try
+            {
+                await _databaseConfigurationService.ApplyMigrationsAsync(_deploymentConfiguration
+                    .DatabaseConfig.ConnectionString);
+            }
+            catch (SqlException sqlException)
+            {
+                return BadRequest(sqlException.ToBadRequestResult("ApplyMigration"));
+            }
+            catch (Exception)
+            {
+                return BadRequest("Failed for unexpected reason".ToBadRequestResult());
+            }
+
             return Ok();
         }
     }

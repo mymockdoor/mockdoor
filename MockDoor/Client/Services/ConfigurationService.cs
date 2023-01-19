@@ -20,13 +20,15 @@ public class ConfigurationService : BaseHttpClientService
 
     public async Task<HttpServiceResult<ConnectionStringTestResult>> TestConnection(string connectionString)
     {
-        var response = await SafePostAsync("api/configuration/testconnection", connectionString, "An error occured testing the connection strings. {0}");
+        var response = await SafePostAsync("api/configuration/testconnection", connectionString, "An error occured testing the connection strings. {0}", 3);
 
         return await HandleResponseAsync<ConnectionStringTestResult>(response, "connection test response not found");
     }
 
-    public async Task<HttpResponseMessage> ApplyMigrationsAsync()
+    public async Task<HttpServiceResult> ApplyMigrationsAsync()
     {
-        return await SafePostAsync("api/configuration/applymigrations", "Failed to apply migrations");
+        var response = await SafePostAsync("api/configuration/applymigrations", "Failed to send apply migrations");
+
+        return await HandleResponseAsync(response, "Applying migrations failed.", apiSupportsBadResponseDto: true);
     }
 }

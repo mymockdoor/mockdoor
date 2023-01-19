@@ -42,5 +42,47 @@ namespace MockDoor.Shared.Helper
 
             return result;
         }
+        
+        public static BadRequestResultDto ToBadRequestResult(this Exception ex, string title)
+        {
+            var result = new BadRequestResultDto()
+            {
+                Status = 400,
+                Title = title,
+                TraceId = Guid.NewGuid().ToString(),
+                Type = "ExceptionBadResult"
+            };
+
+            var errors = new Dictionary<string, List<string>>();
+
+           
+            if (ex != null)
+            {
+                errors.Add("Reason", new List<string>() { ex.Message });
+            }
+
+            result.Errors = errors;
+
+            return result;
+        }
+        
+        public static BadRequestResultDto ToBadRequestResult(this string message)
+        {
+            var result = new BadRequestResultDto()
+            {
+                Status = 400,
+                Title = "Bad Request",
+                TraceId = Guid.NewGuid().ToString(),
+                Type = "MessageBadResult"
+            };
+
+            var errors = new Dictionary<string, List<string>>();
+
+            errors.Add("Reason", new List<string>() { message });
+
+            result.Errors = errors;
+
+            return result;
+        }
     }
 }

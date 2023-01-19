@@ -35,6 +35,25 @@ public class BaseHttpClientService
                 response = await Client.GetAsync(endpoint);
             }
         }
+        catch (TaskCanceledException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                if (errorMessage.Contains("{0}"))
+                {
+                    NotifyError(string.Format(errorMessage, ex.Message));
+                }
+                else
+                {
+                    NotifyError(errorMessage);
+                }
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("Timed out")
+            };
+        }
         catch (Exception ex)
         {
             if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -72,6 +91,25 @@ public class BaseHttpClientService
             {
                 response = await Client.DeleteAsync(endpoint);
             }
+        }
+        catch (TaskCanceledException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                if (errorMessage.Contains("{0}"))
+                {
+                    NotifyError(string.Format(errorMessage, ex.Message));
+                }
+                else
+                {
+                    NotifyError(errorMessage);
+                }
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("Timed out")
+            };
         }
         catch (Exception ex)
         {
@@ -111,6 +149,25 @@ public class BaseHttpClientService
                 response = await Client.PostAsync(endpoint, null);
             }
         }
+        catch (TaskCanceledException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                if (errorMessage.Contains("{0}"))
+                {
+                    NotifyError(string.Format(errorMessage, ex.Message));
+                }
+                else
+                {
+                    NotifyError(errorMessage);
+                }
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("Timed out")
+            };
+        }
         catch (Exception ex)
         {
             if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -148,6 +205,25 @@ public class BaseHttpClientService
             {
                 response = await Client.PostAsJsonAsync(endpoint, content);
             }
+        }
+        catch (TaskCanceledException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                if (errorMessage.Contains("{0}"))
+                {
+                    NotifyError(string.Format(errorMessage, ex.Message));
+                }
+                else
+                {
+                    NotifyError(errorMessage);
+                }
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("Timed out")
+            };
         }
         catch (Exception ex)
         {
@@ -187,6 +263,25 @@ public class BaseHttpClientService
                 response = await Client.PostAsync(endpoint, new StringContent(content));
             }
         }
+        catch (TaskCanceledException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                if (errorMessage.Contains("{0}"))
+                {
+                    NotifyError(string.Format(errorMessage, ex.Message));
+                }
+                else
+                {
+                    NotifyError(errorMessage);
+                }
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("Timed out")
+            };
+        }
         catch (Exception ex)
         {
             if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -224,6 +319,25 @@ public class BaseHttpClientService
             {
                 response = await Client.PatchAsync(endpoint, content);
             }
+        }
+        catch (TaskCanceledException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                if (errorMessage.Contains("{0}"))
+                {
+                    NotifyError(string.Format(errorMessage, ex.Message));
+                }
+                else
+                {
+                    NotifyError(errorMessage);
+                }
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("Timed out")
+            };
         }
         catch (Exception ex)
         {
@@ -263,6 +377,25 @@ public class BaseHttpClientService
                 response = await Client.PutAsJsonAsync(endpoint, content);
             }
         }
+        catch (TaskCanceledException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                if (errorMessage.Contains("{0}"))
+                {
+                    NotifyError(string.Format(errorMessage, ex.Message));
+                }
+                else
+                {
+                    NotifyError(errorMessage);
+                }
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("Timed out")
+            };
+        }
         catch (Exception ex)
         {
             if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -293,13 +426,32 @@ public class BaseHttpClientService
         {
             if (timeout > 0)
             {
-                using var timeoutToken = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
+                using var timeoutToken = new  CancellationTokenSource(TimeSpan.FromSeconds(timeout));
                 response = await Client.SendAsync(httpRequestMessage, timeoutToken.Token);
             }
             else
             {
                 response = await Client.SendAsync(httpRequestMessage);
             }
+        }
+        catch (TaskCanceledException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                if (errorMessage.Contains("{0}"))
+                {
+                    NotifyError(string.Format(errorMessage, ex.Message));
+                }
+                else
+                {
+                    NotifyError(errorMessage);
+                }
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("Timed out")
+            };
         }
         catch (Exception ex)
         {
@@ -339,16 +491,32 @@ public class BaseHttpClientService
                 result.Message = errorMessage;
             }
 
-            if (apiSupportsBadResponseDto && response.StatusCode == HttpStatusCode.BadRequest)
+           
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                try
+                if (apiSupportsBadResponseDto)
                 {
-                    result.BadRequestResult = await response.GetContentAsync<BadRequestResultDto>();
+                    try
+                    {
+                        result.BadRequestResult = await response.GetContentAsync<BadRequestResultDto>();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error occured parsing bad request. {errorMessage}", ex.Message);
+                        NotifyError("An errored occured parsing bad request");
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Console.WriteLine($"Error occured parsing bad request. {errorMessage}", ex.Message);
-                    NotifyError("An errored occured parsing bad request");
+                    try
+                    {
+                        result.Message = await response.Content.ReadAsStringAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error occured parsing bad request. {errorMessage}", ex.Message);
+                        NotifyError("An errored occured parsing bad request");
+                    }
                 }
             }
         }
@@ -389,16 +557,31 @@ public class BaseHttpClientService
                 result.Message = errorMessage;
             }
 
-            if (apiSupportsBadResponseDto && response.StatusCode == HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                try
+                if (apiSupportsBadResponseDto)
                 {
-                    result.BadRequestResult = await response.GetContentAsync<BadRequestResultDto>();
+                    try
+                    {
+                        result.BadRequestResult = await response.GetContentAsync<BadRequestResultDto>();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error occured parsing bad request. {errorMessage}", ex.Message);
+                        NotifyError("An errored occured parsing bad request");
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Console.WriteLine($"Error occured parsing bad request. {errorMessage}", ex.Message);
-                    NotifyError("An errored occured parsing bad request");
+                    try
+                    {
+                        result.Message = await response.Content.ReadAsStringAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error occured parsing bad request. {errorMessage}", ex.Message);
+                        NotifyError("An errored occured parsing bad request");
+                    }
                 }
             }
         }

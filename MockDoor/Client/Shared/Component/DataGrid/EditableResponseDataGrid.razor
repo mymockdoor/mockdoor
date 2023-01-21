@@ -34,7 +34,7 @@
             <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">No records to display.</p>
         </EmptyTemplate>
         <Columns>
-            <RadzenDataGridColumn Width="130px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.Id" Title="Response ID" />
+            <RadzenDataGridColumn Width="130px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.Id" Title="ID" />
 
             <RadzenDataGridColumn Width="100px" TItem="SnapshotEntity<MockResponseDto>" Property="Enabled" Title="Enabled" >
                 <Template Context="response">
@@ -80,7 +80,7 @@
                     <pre class="w-100 mb-0" style="max-height: 400px;">@response.Value.Body.MakePretty()</pre>
                 </Template>
                 <EditTemplate Context="response">
-                    <RadzenTextArea @bind-Value=@response.Value.Body Rows=@(CalculateSize(response.Value.Body)) class="w-100" Style="white-space:nowrap" />
+                    <RadzenTextArea Value=@response.Value.Body  @oninput="(arg => response.Value.Body = arg.Value.ToString() )" Rows=@(CalculateSize(response.Value.Body)) class="w-100" />
                 </EditTemplate>
             </RadzenDataGridColumn>
 
@@ -103,7 +103,7 @@
                 </EditTemplate>
             </RadzenDataGridColumn>
             
-            <RadzenDataGridColumn Width="200px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.CreatedUtc" Title="Created">
+            <RadzenDataGridColumn Width="200px" TItem="SnapshotEntity<MockResponseDto>" Filterable="false" Title="Simulate response?">
                 <Template Context="response">
                     <RadzenButton Text="@(GetSetSimulateButtonText(response))"
                                   Size="ButtonSize.ExtraSmall"
@@ -114,7 +114,7 @@
                 </Template>
             </RadzenDataGridColumn>
 
-            <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>" Context="response" Filterable="false" Sortable="false" Title="Edit/Delete" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="SnapshotEntity<MockResponseDto>" Context="response" Filterable="false" Sortable="false" Title="Edit/Delete" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="response">
                     <RadzenSplitButton Icon="edit" Size="ButtonSize.Small" Click="@(args => OnClickEditSplitButton(args, response))">
                         <ChildContent>

@@ -95,6 +95,8 @@
                             </Template>
                         </RadzenDataGridColumn>
 
+                        <RadzenDataGridColumn TItem="ServiceRequestDto" Property="MostRecentResponse" Title="Most Recent Updated Response" />
+
                         <RadzenDataGridColumn TItem="ServiceRequestDto" Property="CreatedUtc" Title="Created">
                             <Template Context="request">
                                 @request.CreatedUtc.ToString("dd/MM/yy HH:mm:ss.ffff")
@@ -226,6 +228,20 @@
                 StateHasChanged();
             }
         }
+    }
+
+    private DateTime GetRequestLastUpdateResponse(ServiceRequestDto request)
+    {
+        if (request == null)
+        {
+            return default;
+        }
+        if (request.MockResponses == null || request.MockResponses.Count == 0)
+        {
+            return request.CreatedUtc;
+        }
+
+        return request.MockResponses.MaxBy(mr => mr.CreatedUtc).CreatedUtc;
     }
 
 }

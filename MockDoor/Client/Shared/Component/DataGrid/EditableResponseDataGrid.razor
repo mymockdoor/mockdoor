@@ -17,6 +17,7 @@
         SelectionMode="DataGridSelectionMode.Multiple" 
         Density="@Density"
         AllowFiltering="true"
+        FilterMode="FilterMode.Simple"
         AllowColumnResize="true"
         AllowPaging="true" PageSize="15"
         AllowSorting="true"
@@ -36,12 +37,15 @@
         <Columns>
             <RadzenDataGridColumn Width="130px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.Id" Title="ID" />
 
-            <RadzenDataGridColumn Width="100px" TItem="SnapshotEntity<MockResponseDto>" Property="Enabled" Title="Enabled" >
+            <RadzenDataGridColumn Width="100px" TItem="SnapshotEntity<MockResponseDto>" Property="Value.Enabled" Title="Enabled" FilterValue="filteredEnabled">
+                <FilterTemplate>
+                  <RadzenCheckBox TValue="bool?" TriState="true" @bind-Value="@filteredEnabled" />
+                </FilterTemplate>
                 <Template Context="response">
                     @response.Value.Enabled
                 </Template>
                 <EditTemplate Context="response">
-                    <RadzenCheckBox TriState="false" @bind-Value=@response.Value.Enabled />
+                    <RadzenCheckBox TriState="false" @bind-Value="@response.Value.Enabled" />
                 </EditTemplate>
             </RadzenDataGridColumn>
 
@@ -103,14 +107,19 @@
                 </EditTemplate>
             </RadzenDataGridColumn>
             
-            <RadzenDataGridColumn Width="200px" TItem="SnapshotEntity<MockResponseDto>" Filterable="false" Title="Simulate response?">
+            <RadzenDataGridColumn Width="200px" TItem="SnapshotEntity<MockResponseDto>" Title="Simulate response?"
+                                  Property="Value.Id"
+                                  FilterValue="@filteredCurrentSimulationId">
+                <FilterTemplate>
+                    <RadzenCheckBox TValue="bool" Value="@(filteredCurrentSimulationId != null)" Change="@(arg => { if (arg) filteredCurrentSimulationId = CurrentSimulatedResponseId() ?? -1; else filteredCurrentSimulationId = null; })" />
+                </FilterTemplate>
                 <Template Context="response">
                     <RadzenButton Text="@(GetSetSimulateButtonText(response))"
                                   Size="ButtonSize.ExtraSmall"
                                   class="w-100"
                                   ButtonStyle="@(CurrentSimulatedResponseId() == response.Value.Id ? ButtonStyle.Secondary : ButtonStyle.Primary)"
                                   Click="@(async () => await SetResponseAsSimulationTimeAsync(response.Value))"
-                                  IsBusy="@_busy" />
+                                  IsBusy="@_busy"/>
                 </Template>
             </RadzenDataGridColumn>
 

@@ -49,6 +49,8 @@ namespace MockDoor.Client.Shared.Component.DataGrid
         string _errorMessage = null;
         int _minRows = 3, _maxRows = 25;
         private bool _busy, _updating;
+        private int? filteredCurrentSimulationId;
+        private bool? filteredEnabled;
 
         private bool IsEditing()
         {

@@ -38,6 +38,19 @@ namespace MockDoor.Shared.Models.ServiceRequest
 
         public DateTime CreatedUtc { get; set; }
 
+        public DateTime MostRecentResponse
+        {
+            get
+            {
+                if (MockResponses == null || MockResponses.Count == 0)
+                {
+                    return CreatedUtc;
+                }
+
+                return MockResponses.MaxBy(mr => mr.CreatedUtc).CreatedUtc;
+            }
+        }
+
         public int MicroserviceId { get; set; }
 
         public List<ServiceRequestHeaderDto> RequestHeaders { get; set; }
